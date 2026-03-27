@@ -1,11 +1,32 @@
 /**
  * Renderiza UI web do MVP.
  */
-function doGet() {
-  return HtmlService.createTemplateFromFile('Index')
+function doGet(e) {
+  var page = '';
+  try {
+    page = String((e && e.parameter && e.parameter.page) || '').trim();
+  } catch (error) {
+    page = '';
+  }
+
+  var templateName = getTemplateNameByPage_(page);
+
+  return HtmlService.createTemplateFromFile(templateName)
     .evaluate()
     .setTitle('CQ Expedição - MVP')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function getTemplateNameByPage_(page) {
+  if (page === 'listar-rncs') {
+    return 'ListarRncs';
+  }
+
+  if (page === 'editar-colaboradores') {
+    return 'EditarColaboradores';
+  }
+
+  return 'Index';
 }
 
 function include(filename) {
