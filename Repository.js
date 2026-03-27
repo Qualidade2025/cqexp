@@ -1,9 +1,11 @@
 var SHEETS = {
   INSPECOES: 'inspecoes',
   COLABORADORES: 'colaboradores',
-  CAD_POSICOES: 'cad_posicoes',
   CAD_DEFEITOS: 'cad_defeitos',
-  CAD_ORIGENS: 'cad_origens'
+  CAD_ORIGENS: 'cad_origens',
+  VIEW_RELACOES_ATIVAS: 'view_relacoes_ativas',
+  VIEW_POSICOES_ATIVAS: 'view_posicoes_ativas',
+  VIEW_DEFEITOS_ATIVOS: 'view_defeitos_ativos'
 };
 
 /**
@@ -60,6 +62,125 @@ function getActiveCollaborators_() {
 }
 
 /**
+ * Lê matriz de defeitos x posições da aba cad_defeitos.
+ * Formato esperado:
+ * - Linha 1 (a partir da coluna B): posições
+ * - Coluna A (a partir da linha 2): defeitos
+ * - Interseção: "x" para relacionamento ativo
+ */
+function getDefectsByPositionCatalog_() {
+  var viewCatalog = getDefectsByPositionFromViews_();
+  if (viewCatalog) {
+    return viewCatalog;
+  }
+
+  var sheet = getRequiredSheet_(SHEETS.CAD_DEFEITOS);
+  var lastRow = sheet.getLastRow();
+  var lastColumn = sheet.getLastColumn();
+
+  if (lastRow < 2 || lastColumn < 2) {
+    return {
+      posicoes: [],
+      defeitos: [],
+      defeitosPorPosicao: {},
+      paresAtivos: {}
+    };
+  }
+
+  var values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
+  var header = values[0];
+
+  var posicoes = [];
+  var defectsByPosition = {};
+  var activePairs = {};
+
+  for (var columnIndex = 1; columnIndex < header.length; columnIndex += 1) {
+    var posicao = String(header[columnIndex] || '').trim();
+    if (!posicao) {
+      continue;
+    }
+    posicoes.push(posicao);
+    defectsByPosition[posicao] = [];
+  }
+
+  var defectSet = {};
+
+  for (var rowIndex = 1; rowIndex < values.length; rowIndex += 1) {
+    var row = values[rowIndex];
+    var defeito = String(row[0] || '').trim();
+    if (!defeito) {
+      continue;
+    }
+
+    defectSet[defeito] = true;
+
+    for (var matrixColumn = 1; matrixColumn < header.length; matrixColumn += 1) {
+      var headerPosicao = String(header[matrixColumn] || '').trim();
+      if (!headerPosicao || !defectsByPosition[headerPosicao]) {
+        continue;
+      }
+
+      if (isActiveMatrixFlag_(row[matrixColumn])) {
+        defectsByPosition[headerPosicao].push(defeito);
+        activePairs[getPositionDefectKey_(headerPosicao, defeito)] = true;
+      }
+    }
+  }
+
+  return {
+    posicoes: posicoes,
+    defeitos: Object.keys(defectSet),
+    defeitosPorPosicao: defectsByPosition,
+    paresAtivos: activePairs
+  };
+}
+
+function getDefectsByPositionFromViews_() {
+  var relationsSheet = getOptionalSheet_(SHEETS.VIEW_RELACOES_ATIVAS);
+  if (!relationsSheet || relationsSheet.getLastRow() < 2) {
+    return null;
+  }
+
+  var values = relationsSheet.getRange(2, 1, relationsSheet.getLastRow() - 1, Math.max(relationsSheet.getLastColumn(), 2)).getValues();
+  var defectsByPosition = {};
+  var activePairs = {};
+  var defectSet = {};
+  var hasAtLeastOnePair = false;
+
+  values.forEach(function (row) {
+    var posicao = String(row[0] || '').trim();
+    var defeito = String(row[1] || '').trim();
+    var status = row.length > 2 ? row[2] : 'x';
+
+    if (!posicao || !defeito || !isActiveMatrixFlag_(status)) {
+      return;
+    }
+
+    if (!defectsByPosition[posicao]) {
+      defectsByPosition[posicao] = [];
+    }
+    defectsByPosition[posicao].push(defeito);
+    activePairs[getPositionDefectKey_(posicao, defeito)] = true;
+    defectSet[defeito] = true;
+    hasAtLeastOnePair = true;
+  });
+
+  if (!hasAtLeastOnePair) {
+    return null;
+  }
+
+  var posicoesFromView = getSimpleListFromView_(SHEETS.VIEW_POSICOES_ATIVAS, 1);
+  var defeitosFromView = getSimpleListFromView_(SHEETS.VIEW_DEFEITOS_ATIVOS, 1);
+
+  return {
+    posicoes: posicoesFromView.length ? posicoesFromView : Object.keys(defectsByPosition),
+    defeitos: defeitosFromView.length ? defeitosFromView : Object.keys(defectSet),
+    defeitosPorPosicao: defectsByPosition,
+    paresAtivos: activePairs
+  };
+}
+
+/**
  * Grava linhas em lote no final da aba.
  */
 function appendRowsBatch_(sheetName, rows) {
@@ -81,6 +202,32 @@ function getRequiredSheet_(sheetName) {
   return sheet;
 }
 
+function getOptionalSheet_(sheetName) {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+}
+
+function getSimpleListFromView_(sheetName, valueColumnIndex) {
+  var sheet = getOptionalSheet_(sheetName);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return [];
+  }
+
+  var values = sheet.getRange(2, valueColumnIndex, sheet.getLastRow() - 1, 1).getValues();
+  var result = [];
+  var seen = {};
+
+  values.forEach(function (row) {
+    var value = String(row[0] || '').trim();
+    if (!value || seen[value]) {
+      return;
+    }
+    seen[value] = true;
+    result.push(value);
+  });
+
+  return result;
+}
+
 function isActiveFlag_(value) {
   if (value === true || value === 1) {
     return true;
@@ -88,4 +235,13 @@ function isActiveFlag_(value) {
 
   var normalized = String(value || '').trim().toLowerCase();
   return normalized === 'true' || normalized === '1' || normalized === 'sim' || normalized === 'ativo';
+}
+
+function isActiveMatrixFlag_(value) {
+  var normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'x' || isActiveFlag_(value);
+}
+
+function getPositionDefectKey_(posicao, defeito) {
+  return String(posicao).trim() + '||' + String(defeito).trim();
 }
