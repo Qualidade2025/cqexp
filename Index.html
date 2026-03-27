@@ -88,6 +88,23 @@
       </section>
     </div>
 
+    <div id="passwordModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+      <section class="modal-card modal-card-sm">
+        <div class="modal-header">
+          <h3 id="passwordModalTitle">Senha</h3>
+          <button id="closePasswordBtn" class="icon-btn" type="button" aria-label="Fechar modal">×</button>
+        </div>
+        <label>
+          Senha
+          <input id="collaboratorsPassword" type="password" autocomplete="current-password" />
+        </label>
+        <p id="passwordModalError" class="message error"></p>
+        <div class="modal-actions">
+          <button id="confirmPasswordBtn" type="button">OK</button>
+        </div>
+      </section>
+    </div>
+
     <script>
       <?!= include('apps') ?>
     </script>
