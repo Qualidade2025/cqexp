@@ -228,6 +228,11 @@ function getSimpleListFromView_(sheetName, valueColumnIndex) {
   return result;
 }
 
+function getCollaboratorsEditPassword_() {
+  var sheet = getRequiredSheet_(SHEETS.COLABORADORES);
+  return String(sheet.getRange('E2').getValue() || '').trim();
+}
+
 function isActiveFlag_(value) {
   if (value === true || value === 1) {
     return true;
