@@ -1,7 +1,5 @@
 var SHEETS = {
   INSPECOES: 'inspecoes',
-  INSPECAO_OPERADORES: 'inspecao_operadores',
-  INSPECAO_DEFEITOS: 'inspecao_defeitos',
   COLABORADORES: 'colaboradores',
   CAD_POSICOES: 'cad_posicoes',
   CAD_DEFEITOS: 'cad_defeitos',
@@ -23,7 +21,7 @@ function getActiveCatalogValues_(sheetName, valueColumnIndex, activeColumnIndex)
 
   return values
     .filter(function (row) {
-      return row[activeColumnIndex - 1] === true;
+      return isActiveFlag_(row[activeColumnIndex - 1]);
     })
     .map(function (row) {
       return String(row[valueColumnIndex - 1]).trim();
@@ -48,7 +46,7 @@ function getActiveCollaborators_() {
 
   return values
     .filter(function (row) {
-      return row[2] === true;
+      return isActiveFlag_(row[2]);
     })
     .map(function (row) {
       return {
@@ -81,4 +79,13 @@ function getRequiredSheet_(sheetName) {
     throw new Error('Aba obrigatória não encontrada: ' + sheetName + '. Rode setupSchema().');
   }
   return sheet;
+}
+
+function isActiveFlag_(value) {
+  if (value === true || value === 1) {
+    return true;
+  }
+
+  var normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'sim' || normalized === 'ativo';
 }
