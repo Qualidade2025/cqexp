@@ -25,7 +25,7 @@ function getCatalogs() {
 }
 
 /**
- * Grava inspeção em lote nas 3 tabelas com lock para concorrência.
+ * Grava inspeção em linha única na aba inspecoes com lock para concorrência.
  */
 function saveInspection(payload) {
   validateInspectionPayload_(payload);
@@ -38,6 +38,8 @@ function saveInspection(payload) {
     var serverNow = new Date();
     var client = payload.clienteManual || getClientByOP(payload.op) || '';
     var userEmail = Session.getActiveUser().getEmail() || '';
+    var operators = normalizeOperators_(payload.operadores);
+    var defects = normalizeDefects_(payload.defeitos);
 
     appendRowsBatch_(SHEETS.INSPECOES, [[
       idInspecao,
@@ -46,24 +48,17 @@ function saveInspection(payload) {
       Number(payload.qtddRevisada),
       String(payload.origem).trim(),
       String(client).trim(),
-      userEmail
+      userEmail,
+      operators[0] || '',
+      operators[1] || '',
+      operators[2] || '',
+      operators[3] || '',
+      defects.length,
+      JSON.stringify(defects),
+      defects.map(function (item) {
+        return item.posicao + ' / ' + item.defeito + ' / ' + item.quantidade;
+      }).join(' | ')
     ]]);
-
-    var operatorRows = payload.operadores.map(function (op) {
-      return [idInspecao, String(op.id).trim(), String(op.name).trim()];
-    });
-    appendRowsBatch_(SHEETS.INSPECAO_OPERADORES, operatorRows);
-
-    var defectRows = payload.defeitos.map(function (item, index) {
-      return [
-        idInspecao,
-        index + 1,
-        String(item.posicao).trim(),
-        String(item.defeito).trim(),
-        Number(item.quantidade)
-      ];
-    });
-    appendRowsBatch_(SHEETS.INSPECAO_DEFEITOS, defectRows);
 
     return {
       ok: true,
@@ -75,6 +70,23 @@ function saveInspection(payload) {
   }
 }
 
+function normalizeOperators_(operators) {
+  return operators.map(function (op) {
+    return [String(op.id).trim(), String(op.name).trim()].join(' - ');
+  });
+}
+
+function normalizeDefects_(defects) {
+  return defects.map(function (item, index) {
+    return {
+      linha: index + 1,
+      posicao: String(item.posicao).trim(),
+      defeito: String(item.defeito).trim(),
+      quantidade: Number(item.quantidade)
+    };
+  });
+}
+
 /**
  * Stub para integração futura SAP B1 por OP.
  */
@@ -83,9 +95,6 @@ function getClientByOP(op) {
   return '';
 }
 
-function getServerNow() {
-  return new Date();
-}
 
 function healthcheck() {
   return {
