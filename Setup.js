@@ -62,19 +62,14 @@ function getSchemaDefinition_() {
       'qtdd_revisada',
       'origem',
       'cliente',
-      'criado_por_email'
-    ],
-    inspecao_operadores: [
-      'id_inspecao',
-      'id_colaborador',
-      'nome_colaborador'
-    ],
-    inspecao_defeitos: [
-      'id_inspecao',
-      'linha',
-      'posicao',
-      'defeito',
-      'quantidade'
+      'criado_por_email',
+      'operador_1',
+      'operador_2',
+      'operador_3',
+      'operador_4',
+      'total_lancamentos_defeitos',
+      'defeitos_json',
+      'defeitos_resumo'
     ],
     colaboradores: [
       'id_colaborador',
