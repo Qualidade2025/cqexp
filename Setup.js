@@ -14,6 +14,8 @@ function setupSchema() {
 
     ensureHeaders_(sheet, headers);
   });
+  
+  setupCatalogViews();
 }
 
 /**
@@ -29,20 +31,12 @@ function seedCatalogs() {
     ['C004', 'Diego Alves', true]
   ]);
 
-  seedSheet_(ss.getSheetByName('cad_posicoes'), [
-    ['Frente', true],
-    ['Costas', true],
-    ['Manga Esquerda', true],
-    ['Manga Direita', true],
-    ['Barra', true]
-  ]);
-
   seedSheet_(ss.getSheetByName('cad_defeitos'), [
-    ['Mancha', true],
-    ['Furo', true],
-    ['Falha de costura', true],
-    ['Etiqueta incorreta', true],
-    ['Desalinhamento', true]
+    ['Mancha', 'x', 'x', '', '', 'x'],
+    ['Furo', 'x', 'x', 'x', 'x', ''],
+    ['Falha de costura', '', 'x', 'x', 'x', 'x'],
+    ['Etiqueta incorreta', 'x', '', '', '', 'x'],
+    ['Desalinhamento', 'x', 'x', 'x', '', 'x']
   ]);
 
   seedSheet_(ss.getSheetByName('cad_origens'), [
@@ -51,6 +45,8 @@ function seedCatalogs() {
     ['Terceirizado', true],
     ['Devolução', true]
   ]);
+
+   setupCatalogViews();
 }
 
 function getSchemaDefinition_() {
@@ -76,10 +72,46 @@ function getSchemaDefinition_() {
       'nome_colaborador',
       'ativo'
     ],
-    cad_posicoes: ['posicao', 'ativo'],
-    cad_defeitos: ['defeito', 'ativo'],
-    cad_origens: ['origem', 'ativo']
+    cad_defeitos: ['defeito', 'Frente', 'Costas', 'Manga Esquerda', 'Manga Direita', 'Barra'],
+    cad_origens: ['origem', 'ativo'],
+    view_relacoes_ativas: ['posicao', 'defeito', 'status'],
+    view_posicoes_ativas: ['posicao'],
+    view_defeitos_ativos: ['defeito']
   };
+}
+
+/**
+ * Configura fórmulas auxiliares para acelerar leitura de catálogos.
+ */
+function setupCatalogViews() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var relacoes = ss.getSheetByName('view_relacoes_ativas');
+  var posicoes = ss.getSheetByName('view_posicoes_ativas');
+  var defeitos = ss.getSheetByName('view_defeitos_ativos');
+
+  if (!relacoes || !posicoes || !defeitos) {
+    return;
+  }
+
+  if (relacoes.getLastRow() > 1) {
+    relacoes.getRange(2, 1, relacoes.getLastRow() - 1, Math.max(relacoes.getLastColumn(), 3)).clearContent();
+  }
+  if (posicoes.getLastRow() > 1) {
+    posicoes.getRange(2, 1, posicoes.getLastRow() - 1, Math.max(posicoes.getLastColumn(), 1)).clearContent();
+  }
+  if (defeitos.getLastRow() > 1) {
+    defeitos.getRange(2, 1, defeitos.getLastRow() - 1, Math.max(defeitos.getLastColumn(), 1)).clearContent();
+  }
+
+  relacoes.getRange(2, 1).setFormula(
+    '=ARRAYFORMULA(QUERY(SPLIT(FLATTEN(IF(cad_defeitos!B2:ZZ<>"",cad_defeitos!B1:ZZ1&"♦"&cad_defeitos!A2:A&"♦"&cad_defeitos!B2:ZZ,"")),"♦"),"select Col1,Col2,Col3 where Col3 is not null",0))'
+  );
+  posicoes.getRange(2, 1).setFormula(
+    '=ARRAYFORMULA(QUERY(UNIQUE(FILTER(view_relacoes_ativas!A2:A,view_relacoes_ativas!A2:A<>"",REGEXMATCH(LOWER(view_relacoes_ativas!C2:C),"^(x|1|true|sim|ativo)$"))),"select Col1",0))'
+  );
+  defeitos.getRange(2, 1).setFormula(
+    '=ARRAYFORMULA(QUERY(UNIQUE(FILTER(view_relacoes_ativas!B2:B,view_relacoes_ativas!B2:B<>"",REGEXMATCH(LOWER(view_relacoes_ativas!C2:C),"^(x|1|true|sim|ativo)$"))),"select Col1",0))'
+  );
 }
 
 function ensureHeaders_(sheet, headers) {
