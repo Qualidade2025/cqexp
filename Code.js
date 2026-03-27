@@ -16,10 +16,13 @@ function include(filename) {
  * Retorna catálogos para preencher dropdowns no front-end.
  */
 function getCatalogs() {
+  var defectCatalog = getDefectsByPositionCatalog_();
+
   return {
     colaboradores: getActiveCollaborators_(),
-    posicoes: getActiveCatalogValues_(SHEETS.CAD_POSICOES, 1, 2),
-    defeitos: getActiveCatalogValues_(SHEETS.CAD_DEFEITOS, 1, 2),
+    posicoes: defectCatalog.posicoes,
+    defeitos: defectCatalog.defeitos,
+    defeitosPorPosicao: defectCatalog.defeitosPorPosicao,
     origens: getActiveCatalogValues_(SHEETS.CAD_ORIGENS, 1, 2)
   };
 }
