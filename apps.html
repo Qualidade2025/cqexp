@@ -191,7 +191,7 @@ function confirmCollaboratorsPassword_() {
   var confirmBtn = document.getElementById('confirmPasswordBtn');
   errorBox.textContent = '';
   confirmBtn.disabled = true;
-  errorBox.className = 'message info';
+  errorBox.className = 'message info modal-inline-message';
   errorBox.textContent = 'Abrindo...';
 
   google.script.run
@@ -202,7 +202,7 @@ function confirmCollaboratorsPassword_() {
     })
     .withFailureHandler(function (error) {
       confirmBtn.disabled = false;
-      errorBox.className = 'message error';
+      errorBox.className = 'message error modal-inline-message';
       errorBox.textContent = error.message || String(error);
     })
     .validateCollaboratorsPassword(password);
