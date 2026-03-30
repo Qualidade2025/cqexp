@@ -14,6 +14,9 @@ var STORAGE_KEY = 'cqexp.selectedOperators';
 var OPERATOR_SLOTS = [1, 2, 3, 4];
 
 document.addEventListener('DOMContentLoaded', function () {
+  if (typeof window.initThemeToggle_ === 'function') {
+    window.initThemeToggle_();
+  }
   bindActions_();
   loadCatalogs_();
 });
