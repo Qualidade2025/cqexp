@@ -233,6 +233,12 @@ function getCollaboratorsEditPassword_() {
   return String(sheet.getRange('E2').getValue() || '').trim();
 }
 
+function isOriginRequired_() {
+  var sheet = getRequiredSheet_(SHEETS.COLABORADORES);
+  var flagValue = sheet.getRange('G2').getValue();
+  return flagValue === true || String(flagValue || '').trim().toUpperCase() === 'TRUE';
+}
+
 function isActiveFlag_(value) {
   if (value === true || value === 1) {
     return true;
