@@ -306,6 +306,7 @@ function listInspectionsControls_(params) {
   var page = normalizePage_(filters.page);
   var period = normalizePeriodFilter_(filters.dataInicial, filters.dataFinal);
   var opFilter = String(filters.op || '').trim().toLowerCase();
+  var clienteFilter = String(filters.cliente || '').trim().toLowerCase();
   var origemFilter = String(filters.origem || '').trim().toLowerCase();
   var operadorFilter = String(filters.operador || '').trim().toLowerCase();
   var retrabalhoFilter = normalizeRetrabalhoFilter_(filters.retrabalho);
@@ -333,6 +334,7 @@ function listInspectionsControls_(params) {
     if (!matchesInspectionFilters_(mapped, {
       period: period,
       op: opFilter,
+      cliente: clienteFilter,
       origem: origemFilter,
       operador: operadorFilter,
       retrabalho: retrabalhoFilter
@@ -432,6 +434,10 @@ function matchesInspectionFilters_(item, filters) {
   }
 
   if (filters.op && item.op.toLowerCase().indexOf(filters.op) === -1) {
+    return false;
+  }
+
+  if (filters.cliente && item.cliente.toLowerCase().indexOf(filters.cliente) === -1) {
     return false;
   }
 
