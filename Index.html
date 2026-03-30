@@ -16,7 +16,7 @@
         </div>
       </section>
       <section class="top-actions">
-        <button id="listRncsBtn" class="secondary" type="button">Listar RNCs</button>
+        <button id="listRncsBtn" class="secondary" type="button">Listar Controles</button>
         <button id="editOperatorsBtn" class="secondary" type="button">Colaboradores</button>
         <button class="secondary theme-toggle" type="button" data-theme-toggle aria-label="Alternar tema">🌙</button>
       </section>
@@ -106,12 +106,10 @@
           <h3 id="passwordModalTitle">Senha</h3>
           <button id="closePasswordBtn" class="icon-btn" type="button" aria-label="Fechar modal">×</button>
         </div>
-        <label>
-          Senha
-          <input id="collaboratorsPassword" type="password" autocomplete="current-password" />
-        </label>
-        <p id="passwordModalError" class="message error"></p>
+        <label class="sr-only" for="collaboratorsPassword">Senha</label>
+        <input id="collaboratorsPassword" type="password" autocomplete="current-password" aria-label="Senha" />
         <div class="modal-actions">
+          <span id="passwordModalError" class="message error modal-inline-message"></span>
           <button id="confirmPasswordBtn" type="button">OK</button>
         </div>
       </section>
