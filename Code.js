@@ -73,7 +73,7 @@ function saveInspection(payload) {
   lock.waitLock(30000);
 
   try {
-    var idInspecao = Utilities.getUuid();
+    var idInspecao = getNextInspectionId_();
     var serverNow = new Date();
     var client = payload.clienteManual || getClientByOP(payload.op) || '';
     var userEmail = Session.getActiveUser().getEmail() || '';
@@ -108,6 +108,23 @@ function saveInspection(payload) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function getNextInspectionId_() {
+  var sheet = getRequiredSheet_(SHEETS.INSPECOES);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return 1;
+  }
+
+  var lastValue = sheet.getRange(lastRow, 1).getValue();
+  var parsedValue = Number(lastValue);
+
+  if (!isFinite(parsedValue) || parsedValue < 1) {
+    return 1;
+  }
+
+  return Math.floor(parsedValue) + 1;
 }
 
 function normalizeOperators_(operators) {
