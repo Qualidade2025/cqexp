@@ -106,6 +106,7 @@
     </div>
 
     <script>
+      window.APP_BASE_URL = <?!= JSON.stringify(appBaseUrl || '') ?>;
       <?!= include('apps') ?>
     </script>
   </body>
