@@ -5,8 +5,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Editar colaboradores</title>
+    <?!= include('styles') ?>
   </head>
   <body>
-    editar colaboradores
+    <main class="container">
+      <section class="top-actions">
+        <button class="secondary" type="button" onclick="goBack_()">← Voltar</button>
+      </section>
+
+      <section class="card">
+        <h2>Editar colaboradores</h2>
+        <p class="hint">
+          Esta tela foi carregada com sucesso. A edição detalhada de colaboradores será disponibilizada na próxima etapa.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      function goBack_() {
+        var url = new URL(window.location.href);
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+      }
+    </script>
   </body>
 </html>
