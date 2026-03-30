@@ -221,3 +221,7 @@ function saveCollaboratorsControls(rows) {
 function listInspectionsControls(params) {
   return listInspectionsControls_(params);
 }
+
+function updateInspectionControl(payload) {
+  return updateInspectionControl_(payload);
+}
