@@ -24,18 +24,23 @@
     <script>
       window.APP_BASE_URL = <?!= JSON.stringify(appBaseUrl || '') ?>;
 
+      function navigateToMainPage_(url) {
+        try {
+          window.top.location.href = url;
+        } catch (error) {
+          window.location.href = url;
+        }
+      }
+
       function goBack_() {
         if (window.APP_BASE_URL) {
-          window.location.href = window.APP_BASE_URL;
+          navigateToMainPage_(window.APP_BASE_URL);
           return;
         }
 
-        var currentUrl = window.location.href;
-        var urlWithoutPage = currentUrl
-          .replace(/([?&])page=[^&]*/g, '$1')
-          .replace(/[?&]$/, '');
-
-        window.location.href = urlWithoutPage;
+        var fallbackUrl = new URL(window.location.href);
+        fallbackUrl.searchParams.set('page', 'index');
+        navigateToMainPage_(fallbackUrl.toString());
       }
     </script>
   </body>
