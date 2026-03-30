@@ -61,6 +61,46 @@ function getActiveCollaborators_() {
     });
 }
 
+function getCollaboratorsForControlList_() {
+  var sheet = getRequiredSheet_(SHEETS.COLABORADORES);
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return [];
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+
+  return values
+    .map(function (row) {
+      return {
+        id: String(row[0] || '').trim(),
+        name: String(row[1] || '').trim(),
+        active: isActiveFlag_(row[2]),
+        isEditing: false,
+        isNew: false
+      };
+    })
+    .filter(function (row) {
+      return row.id || row.name;
+    });
+}
+
+function saveCollaboratorsControlList_(rows) {
+  var sheet = getRequiredSheet_(SHEETS.COLABORADORES);
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow > 1) {
+    sheet.getRange(2, 1, lastRow - 1, 3).clearContent();
+  }
+
+  if (!rows.length) {
+    return;
+  }
+
+  sheet.getRange(2, 1, rows.length, 3).setValues(rows);
+}
+
 /**
  * Lê matriz de defeitos x posições da aba cad_defeitos.
  * Formato esperado:
