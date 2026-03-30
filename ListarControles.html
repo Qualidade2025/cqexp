@@ -14,6 +14,15 @@
         margin-bottom: 10px;
       }
 
+      .filter-compact {
+        width: 60%;
+        min-width: 120px;
+      }
+
+      .list-total {
+        margin: 10px 4px;
+      }
+
       .table-actions {
         display: flex;
         gap: 6px;
@@ -105,11 +114,11 @@
         <div class="filters-grid">
           <label>
             Data inicial
-            <input id="filterDateStart" type="date" />
+            <input id="filterDateStart" class="filter-compact" type="date" />
           </label>
           <label>
             Data final
-            <input id="filterDateEnd" type="date" />
+            <input id="filterDateEnd" class="filter-compact" type="date" />
           </label>
           <label>
             OP
@@ -117,9 +126,13 @@
           </label>
           <label>
             Origem
-            <select id="filterOrigem">
+            <select id="filterOrigem" class="filter-compact">
               <option value="">Todas</option>
             </select>
+          </label>
+          <label>
+            Cliente
+            <input id="filterCliente" type="text" maxlength="120" placeholder="Nome do cliente" />
           </label>
           <label>
             Operador
@@ -141,6 +154,8 @@
         </section>
       </section>
 
+      <p id="paginationInfo" class="hint list-total">Total: 0</p>
+
       <section class="card">
         <div class="table-wrap controls-table-wrap">
           <table id="inspectionsTable">
@@ -161,8 +176,6 @@
             <tbody id="inspectionsRows"></tbody>
           </table>
         </div>
-
-        <p id="paginationInfo" class="hint">Total: 0</p>
       </section>
 
       <section id="messageBox" class="message" aria-live="polite"></section>
@@ -303,13 +316,14 @@
           .listInspectionsControls(getFiltersPayload_());
       }
 
-      function getFiltersPayload_() {
+     function getFiltersPayload_() {
         return {
           page: listState.page,
           pageSize: listState.pageSize,
           dataInicial: String(document.getElementById('filterDateStart').value || '').trim(),
           dataFinal: String(document.getElementById('filterDateEnd').value || '').trim(),
           op: String(document.getElementById('filterOp').value || '').trim(),
+          cliente: String(document.getElementById('filterCliente').value || '').trim(),
           origem: String(document.getElementById('filterOrigem').value || '').trim(),
           operador: String(document.getElementById('filterOperador').value || '').trim(),
           retrabalho: String(document.getElementById('filterRetrabalho').value || 'todos').trim()
@@ -320,6 +334,7 @@
         document.getElementById('filterDateStart').value = '';
         document.getElementById('filterDateEnd').value = '';
         document.getElementById('filterOp').value = '';
+        document.getElementById('filterCliente').value = '';
         document.getElementById('filterOrigem').value = '';
         document.getElementById('filterOperador').value = '';
         document.getElementById('filterRetrabalho').value = 'todos';
