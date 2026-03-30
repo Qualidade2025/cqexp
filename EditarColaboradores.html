@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html>
   <head>
     <base target="_top" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Editar colaboradores</title>
+    <title>Listar controles</title>
     <?!= include('styles') ?>
   </head>
   <body>
@@ -14,9 +15,9 @@
       </section>
 
       <section class="card">
-        <h2>Editar colaboradores</h2>
+        <h2>Listar controles</h2>
         <p class="hint">
-          Esta tela foi carregada com sucesso. A edição detalhada de colaboradores será disponibilizada na próxima etapa.
+          Esta página foi carregada corretamente. A listagem será implementada nesta tela.
         </p>
       </section>
     </main>
@@ -24,18 +25,23 @@
     <script>
       window.APP_BASE_URL = <?!= JSON.stringify(appBaseUrl || '') ?>;
 
+      function navigateToMainPage_(url) {
+        try {
+          window.top.location.href = url;
+        } catch (error) {
+          window.location.href = url;
+        }
+      }
+
       function goBack_() {
         if (window.APP_BASE_URL) {
-          window.location.href = window.APP_BASE_URL;
+          navigateToMainPage_(window.APP_BASE_URL);
           return;
         }
 
-        var currentUrl = window.location.href;
-        var urlWithoutPage = currentUrl
-          .replace(/([?&])page=[^&]*/g, '$1')
-          .replace(/[?&]$/, '');
-
-        window.location.href = urlWithoutPage;
+        var fallbackUrl = new URL(window.location.href);
+        fallbackUrl.searchParams.set('page', 'index');
+        navigateToMainPage_(fallbackUrl.toString());
       }
     </script>
   </body>
