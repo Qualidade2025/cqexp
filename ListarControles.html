@@ -170,6 +170,33 @@
       #detailsEditBtn {
         min-width: 96px;
       }
+
+
+      .edit-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .edit-form-grid label {
+        margin: 0;
+      }
+
+      .edit-form-grid textarea {
+        min-height: 92px;
+        resize: vertical;
+      }
+
+      .edit-form-grid .full-width {
+        grid-column: 1 / -1;
+      }
+
+      @media (max-width: 920px) {
+        .edit-form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -291,7 +318,7 @@
           <div class="details-box"><p><strong>Retrabalho:</strong> <span id="detailsRetrabalho"></span></p></div>
         </div>
 
-        <p class="hint" id="detailsOperators"></p>
+       <p class="hint" id="detailsOperators"></p>
 
         <div class="table-wrap" style="margin-top: 8px;">
           <table id="detailsDefectsTable">
@@ -312,6 +339,88 @@
         <div class="modal-actions">
           <button id="detailsEditBtn" class="secondary" type="button">Editar</button>
         </div>
+      </section>
+    </div>
+
+    <div id="editDetailsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="editDetailsModalTitle">
+      <section class="modal-card">
+        <div class="modal-header">
+          <h3 id="editDetailsModalTitle">Editar inspeção</h3>
+          <button id="closeEditDetailsBtn" class="icon-btn" type="button" aria-label="Fechar modal de edição">×</button>
+        </div>
+
+        <form id="editDetailsForm">
+          <div class="edit-form-grid">
+            <label>
+              ID
+              <input id="editIdInspecao" type="text" readonly />
+            </label>
+            <label>
+              Data/Hora
+              <input id="editDataServidor" type="datetime-local" />
+            </label>
+            <label>
+              OP
+              <input id="editOp" type="text" maxlength="80" />
+            </label>
+            <label>
+              Quantidade revisada
+              <input id="editQtddRevisada" type="number" min="0" step="1" />
+            </label>
+            <label>
+              Origem
+              <input id="editOrigem" type="text" maxlength="120" />
+            </label>
+            <label>
+              Cliente
+              <input id="editCliente" type="text" maxlength="180" />
+            </label>
+            <label>
+              Criado por (e-mail)
+              <input id="editCriadoPorEmail" type="email" maxlength="180" />
+            </label>
+            <label>
+              Retrabalho
+              <select id="editRetrabalho">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </label>
+            <label>
+              Operador 1
+              <input id="editOperador1" type="text" maxlength="180" />
+            </label>
+            <label>
+              Operador 2
+              <input id="editOperador2" type="text" maxlength="180" />
+            </label>
+            <label>
+              Operador 3
+              <input id="editOperador3" type="text" maxlength="180" />
+            </label>
+            <label>
+              Operador 4
+              <input id="editOperador4" type="text" maxlength="180" />
+            </label>
+            <label>
+              Total de lançamentos
+              <input id="editTotalLancamentos" type="number" min="0" step="1" />
+            </label>
+            <label class="full-width">
+              Defeitos (JSON)
+              <textarea id="editDefeitosJson"></textarea>
+            </label>
+            <label class="full-width">
+              Resumo dos defeitos
+              <textarea id="editDefeitosResumo"></textarea>
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <button id="cancelEditDetailsBtn" class="secondary" type="button">Cancelar</button>
+            <button id="saveEditDetailsBtn" type="submit">Salvar alterações</button>
+          </div>
+        </form>
       </section>
     </div>
 
@@ -362,6 +471,9 @@
 
         document.getElementById('closeDetailsBtn').addEventListener('click', closeDetailsModal_);
         document.getElementById('detailsEditBtn').addEventListener('click', handleEditDetails_);
+        document.getElementById('closeEditDetailsBtn').addEventListener('click', closeEditModal_);
+        document.getElementById('cancelEditDetailsBtn').addEventListener('click', closeEditModal_);
+        document.getElementById('editDetailsForm').addEventListener('submit', submitEditDetails_);
 
         Array.prototype.slice.call(document.querySelectorAll('#inspectionsTable th[data-sort-key]')).forEach(function (header) {
           header.addEventListener('click', function () {
@@ -604,6 +716,8 @@
           return;
         }
 
+        currentDetailsItem = item;
+
         document.getElementById('detailsDate').textContent = item.dataServidorLabel || '-';
         document.getElementById('detailsOp').textContent = item.op || '-';
         document.getElementById('detailsCliente').textContent = item.cliente || '-';
@@ -643,7 +757,7 @@
         document.getElementById('detailsModal').classList.remove('hidden');
       }
 
-      function parseDefectsPayload_(raw) {
+     function parseDefectsPayload_(raw) {
         var normalized = String(raw || '').trim();
         if (!normalized) {
           return [];
@@ -668,33 +782,61 @@
 
       function handleEditDetails_() {
         if (!currentDetailsItem) {
+          setMessage_('Selecione um registro para editar.', 'error');
           return;
         }
 
-        var nextOp = window.prompt('Editar OP:', String(currentDetailsItem.op || '').trim());
-        if (nextOp === null) {
-          return;
+        populateEditForm_(currentDetailsItem);
+        document.getElementById('editDetailsModal').classList.remove('hidden');
+      }
+
+      function populateEditForm_(item) {
+        document.getElementById('editIdInspecao').value = String(item.idInspecao || '');
+        document.getElementById('editDataServidor').value = toDatetimeLocalValue_(item.dataServidorIso);
+        document.getElementById('editOp').value = String(item.op || '');
+        document.getElementById('editQtddRevisada').value = Number(item.qtddRevisada) || 0;
+        document.getElementById('editOrigem').value = String(item.origem || '');
+        document.getElementById('editCliente').value = String(item.cliente || '');
+        document.getElementById('editCriadoPorEmail').value = String(item.criadoPorEmail || '');
+        document.getElementById('editRetrabalho').value = item.retrabalho ? 'sim' : 'nao';
+
+        var operators = Array.isArray(item.operadores) ? item.operadores : [];
+        document.getElementById('editOperador1').value = operators[0] || '';
+        document.getElementById('editOperador2').value = operators[1] || '';
+        document.getElementById('editOperador3').value = operators[2] || '';
+        document.getElementById('editOperador4').value = operators[3] || '';
+
+        document.getElementById('editTotalLancamentos').value = Number(item.totalLancamentosDefeitos) || 0;
+        document.getElementById('editDefeitosJson').value = String(item.defeitosJsonRaw || '');
+        document.getElementById('editDefeitosResumo').value = String(item.defeitosResumo || '');
+      }
+
+      function toDatetimeLocalValue_(isoValue) {
+        if (!isoValue) {
+          return '';
+        }
+        var date = new Date(isoValue);
+        if (isNaN(date.getTime())) {
+          return '';
         }
 
-        var nextCliente = window.prompt('Editar Cliente:', String(currentDetailsItem.cliente || '').trim());
-        if (nextCliente === null) {
-          return;
-        }
+        var year = date.getFullYear();
+        var month = String(date.getMonth() + 1).padStart(2, '0');
+        var day = String(date.getDate()).padStart(2, '0');
+        var hour = String(date.getHours()).padStart(2, '0');
+        var minute = String(date.getMinutes()).padStart(2, '0');
+        return year + '-' + month + '-' + day + 'T' + hour + ':' + minute;
+      }
 
-        var nextOrigem = window.prompt('Editar Origem:', String(currentDetailsItem.origem || '').trim());
-        if (nextOrigem === null) {
-          return;
-        }
+      function closeEditModal_() {
+        document.getElementById('editDetailsModal').classList.add('hidden');
+      }
 
-        var retrabalhoAtual = currentDetailsItem.retrabalho ? 'sim' : 'nao';
-        var nextRetrabalho = window.prompt('Retrabalho? (sim/nao)', retrabalhoAtual);
-        if (nextRetrabalho === null) {
-          return;
-        }
+      function submitEditDetails_(event) {
+        event.preventDefault();
 
-        var retrabalhoNormalized = String(nextRetrabalho || '').trim().toLowerCase();
-        if (retrabalhoNormalized !== 'sim' && retrabalhoNormalized !== 'nao') {
-          setMessage_('Valor de retrabalho inválido. Use "sim" ou "nao".', 'error');
+        if (!currentDetailsItem) {
+          setMessage_('Selecione um registro para editar.', 'error');
           return;
         }
 
@@ -703,9 +845,31 @@
           return;
         }
 
+        var payload = {
+          idInspecao: currentDetailsItem.idInspecao,
+          sheetRowNumber: currentDetailsItem.sheetRowNumber,
+          dataServidor: String(document.getElementById('editDataServidor').value || '').trim(),
+          op: String(document.getElementById('editOp').value || '').trim(),
+          qtddRevisada: Number(document.getElementById('editQtddRevisada').value || 0),
+          origem: String(document.getElementById('editOrigem').value || '').trim(),
+          cliente: String(document.getElementById('editCliente').value || '').trim(),
+          criadoPorEmail: String(document.getElementById('editCriadoPorEmail').value || '').trim(),
+          operadores: [
+            String(document.getElementById('editOperador1').value || '').trim(),
+            String(document.getElementById('editOperador2').value || '').trim(),
+            String(document.getElementById('editOperador3').value || '').trim(),
+            String(document.getElementById('editOperador4').value || '').trim()
+          ],
+          totalLancamentosDefeitos: Number(document.getElementById('editTotalLancamentos').value || 0),
+          defeitosJsonRaw: String(document.getElementById('editDefeitosJson').value || '').trim(),
+          defeitosResumo: String(document.getElementById('editDefeitosResumo').value || '').trim(),
+          retrabalho: String(document.getElementById('editRetrabalho').value || 'nao').trim() === 'sim'
+        };
+
         setMessage_('Salvando edição da inspeção...', 'info');
         google.script.run
           .withSuccessHandler(function () {
+            closeEditModal_();
             closeDetailsModal_();
             loadInspections_();
             setMessage_('Inspeção atualizada com sucesso.', 'success', true);
@@ -713,14 +877,7 @@
           .withFailureHandler(function (error) {
             setMessage_('Falha ao editar inspeção: ' + (error.message || error), 'error');
           })
-          .updateInspectionControl({
-            idInspecao: currentDetailsItem.idInspecao,
-            sheetRowNumber: currentDetailsItem.sheetRowNumber,
-            op: String(nextOp || '').trim(),
-            cliente: String(nextCliente || '').trim(),
-            origem: String(nextOrigem || '').trim(),
-            retrabalho: retrabalhoNormalized === 'sim'
-          });
+          .updateInspectionControl(payload);
       }
 
       function showInlineStatus_(elementId, text) {
