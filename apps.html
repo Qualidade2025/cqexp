@@ -188,14 +188,21 @@ function closePasswordModal_() {
 function confirmCollaboratorsPassword_() {
   var password = document.getElementById('collaboratorsPassword').value;
   var errorBox = document.getElementById('passwordModalError');
+  var confirmBtn = document.getElementById('confirmPasswordBtn');
   errorBox.textContent = '';
+  confirmBtn.disabled = true;
+  errorBox.className = 'message info';
+  errorBox.textContent = 'Abrindo...';
 
   google.script.run
     .withSuccessHandler(function () {
+      confirmBtn.disabled = false;
       closePasswordModal_();
       openAppPage_('editar-colaboradores');
     })
     .withFailureHandler(function (error) {
+      confirmBtn.disabled = false;
+      errorBox.className = 'message error';
       errorBox.textContent = error.message || String(error);
     })
     .validateCollaboratorsPassword(password);
