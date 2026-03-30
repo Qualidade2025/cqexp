@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Listar controles</title>
+    <?!= include('styles') ?>
+  </head>
+  <body>
+    <main class="container">
+      <section class="top-actions">
+        <button class="secondary" type="button" onclick="goBack_()">← Voltar</button>
+      </section>
+
+      <section class="card">
+        <h2>Listar controles</h2>
+        <p class="hint">
+          Esta página foi carregada corretamente. A listagem será implementada nesta tela.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      function goBack_() {
+        var url = new URL(window.location.href);
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+      }
+    </script>
+  </body>
+</html>
