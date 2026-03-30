@@ -388,9 +388,29 @@ function updateInspectionControl_(payload) {
     throw new Error('A inspeção foi alterada. Recarregue a listagem e tente novamente.');
   }
 
+  var parsedDate = parseSheetDateValue_(data.dataServidor);
+  if (parsedDate) {
+    row[1] = parsedDate;
+  }
+
   row[2] = String(data.op || '').trim();
+  row[3] = normalizeNonNegativeNumber_(data.qtddRevisada);
   row[4] = String(data.origem || '').trim();
   row[5] = String(data.cliente || '').trim();
+  row[6] = String(data.criadoPorEmail || '').trim();
+
+  var operators = normalizeFixedOperators_(data.operadores);
+  row[7] = operators[0];
+  row[8] = operators[1];
+  row[9] = operators[2];
+  row[10] = operators[3];
+
+  row[11] = normalizeNonNegativeNumber_(data.totalLancamentosDefeitos);
+
+  var defectsJsonRaw = String(data.defeitosJsonRaw || '').trim();
+  validateDefectsJsonRaw_(defectsJsonRaw);
+  row[12] = defectsJsonRaw;
+  row[13] = String(data.defeitosResumo || '').trim();
   row[14] = data.retrabalho ? 'X' : '';
 
   sheet.getRange(sheetRowNumber, 1, 1, 15).setValues([row]);
@@ -398,6 +418,49 @@ function updateInspectionControl_(payload) {
   return {
     ok: true
   };
+}
+
+function parseSheetDateValue_(value) {
+  var normalized = String(value || '').trim();
+  if (!normalized) {
+    return null;
+  }
+
+  var parsed = new Date(normalized);
+  if (isNaN(parsed.getTime())) {
+    throw new Error('Data/Hora inválida para edição.');
+  }
+
+  return parsed;
+}
+
+function normalizeNonNegativeNumber_(value) {
+  var parsed = Number(value);
+  if (!isFinite(parsed) || parsed < 0) {
+    return 0;
+  }
+  return Math.floor(parsed);
+}
+
+function normalizeFixedOperators_(operators) {
+  var list = Array.isArray(operators) ? operators : [];
+  var normalized = [];
+  for (var i = 0; i < 4; i += 1) {
+    normalized.push(String(list[i] || '').trim());
+  }
+  return normalized;
+}
+
+function validateDefectsJsonRaw_(raw) {
+  if (!raw) {
+    return;
+  }
+
+  try {
+    JSON.parse(raw);
+  } catch (error) {
+    throw new Error('JSON de defeitos inválido.');
+  }
 }
 
 function mapInspectionRow_(row, sheetRowNumber) {
