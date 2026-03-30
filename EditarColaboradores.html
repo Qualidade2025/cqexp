@@ -49,14 +49,29 @@
         window.initThemeToggle_();
       }
 
-      document.addEventListener('DOMContentLoaded', function () {
-        document.getElementById('addCollaboratorBtn').addEventListener('click', function () {
-          addRow_({ id: '', name: '', active: true, isNew: true, isEditing: true });
-        });
+      function initPage_() {
+        var addCollaboratorBtn = document.getElementById('addCollaboratorBtn');
+        if (addCollaboratorBtn && !addCollaboratorBtn.dataset.bound) {
+          addCollaboratorBtn.addEventListener('click', function () {
+            addRow_({ id: getNextCollaboratorId_(), name: '', active: true, isNew: true, isEditing: true });
+          });
+          addCollaboratorBtn.dataset.bound = 'true';
+        }
 
-        document.getElementById('saveBtn').addEventListener('click', saveChanges_);
+        var saveBtn = document.getElementById('saveBtn');
+        if (saveBtn && !saveBtn.dataset.bound) {
+          saveBtn.addEventListener('click', saveChanges_);
+          saveBtn.dataset.bound = 'true';
+        }
+
         loadRows_();
-      });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPage_);
+      } else {
+        initPage_();
+      }
 
       function navigateToMainPage_(url) {
         try {
@@ -80,15 +95,24 @@
       function loadRows_() {
         setMessage_('Carregando colaboradores...', 'info');
 
-        google.script.run
-          .withSuccessHandler(function (rows) {
-            renderRows_(Array.isArray(rows) ? rows : []);
-            setMessage_('', 'info');
-          })
-          .withFailureHandler(function (error) {
-            setMessage_('Falha ao carregar colaboradores: ' + (error.message || error), 'error');
-          })
-          .listCollaboratorsControls();
+        if (!window.google || !google.script || !google.script.run) {
+          setMessage_('Falha ao carregar colaboradores: ambiente do Apps Script indisponível.', 'error');
+          return;
+        }
+
+        try {
+          google.script.run
+            .withSuccessHandler(function (rows) {
+              renderRows_(Array.isArray(rows) ? rows : []);
+              setMessage_('', 'info');
+            })
+            .withFailureHandler(function (error) {
+              setMessage_('Falha ao carregar colaboradores: ' + (error.message || error), 'error');
+            })
+            .listCollaboratorsControls();
+        } catch (error) {
+          setMessage_('Falha ao carregar colaboradores: ' + (error.message || error), 'error');
+        }
       }
 
       function renderRows_(rows) {
@@ -104,7 +128,6 @@
         var tbody = document.getElementById('collaboratorsRows');
         var tr = document.createElement('tr');
 
-        var isNew = !!row.isNew;
         var isEditing = !!row.isEditing;
 
         var idCell = document.createElement('td');
@@ -112,7 +135,7 @@
         idInput.type = 'text';
         idInput.maxLength = 50;
         idInput.value = String(row.id || '').trim();
-        idInput.disabled = !(isEditing && isNew);
+        idInput.disabled = true;
         idInput.placeholder = 'ID';
         idCell.appendChild(idInput);
 
@@ -143,9 +166,6 @@
           editBtn.textContent = nowEditing ? 'Concluir' : 'Editar';
           nameInput.disabled = !nowEditing;
           activeInput.disabled = !nowEditing;
-          if (isNew) {
-            idInput.disabled = !nowEditing;
-          }
         });
 
         actionCell.appendChild(editBtn);
@@ -156,6 +176,48 @@
         tr.appendChild(actionCell);
 
         tbody.appendChild(tr);
+      }
+
+      function getNextCollaboratorId_() {
+        var rows = Array.prototype.slice.call(document.querySelectorAll('#collaboratorsRows tr'));
+        var maxNumericId = 0;
+        var detectedPrefix = '';
+        var detectedDigits = 0;
+
+        rows.forEach(function (tr) {
+          var idInput = tr && tr.cells && tr.cells[0] ? tr.cells[0].querySelector('input') : null;
+          var value = String(idInput && idInput.value ? idInput.value : '').trim();
+          var prefixedMatch = value.match(/^([A-Za-z]+)(\d+)$/);
+
+          if (prefixedMatch) {
+            var prefix = prefixedMatch[1];
+            var numericPart = prefixedMatch[2];
+            var parsedPrefixed = parseInt(numericPart, 10);
+
+            if (isFinite(parsedPrefixed) && parsedPrefixed > maxNumericId) {
+              maxNumericId = parsedPrefixed;
+              detectedPrefix = prefix;
+              detectedDigits = numericPart.length;
+            }
+            return;
+          }
+
+          var parsed = parseInt(value, 10);
+          if (isFinite(parsed) && parsed > maxNumericId) {
+            maxNumericId = parsed;
+          }
+        });
+
+        var nextNumericId = maxNumericId + 1;
+        if (detectedPrefix) {
+          var paddedNumericId = String(nextNumericId);
+          while (paddedNumericId.length < detectedDigits) {
+            paddedNumericId = '0' + paddedNumericId;
+          }
+          return detectedPrefix + paddedNumericId;
+        }
+
+        return String(nextNumericId);
       }
 
       function collectRows_() {
@@ -171,6 +233,11 @@
       }
 
       function saveChanges_() {
+        if (!window.google || !google.script || !google.script.run) {
+          setMessage_('Falha ao salvar colaboradores: ambiente do Apps Script indisponível.', 'error');
+          return;
+        }
+
         google.script.run
           .withSuccessHandler(function () {
             goBack_();
