@@ -58,7 +58,8 @@ function getCatalogs() {
     posicoes: defectCatalog.posicoes,
     defeitos: defectCatalog.defeitos,
     defeitosPorPosicao: defectCatalog.defeitosPorPosicao,
-    origens: getActiveCatalogValues_(SHEETS.CAD_ORIGENS, 1, 2)
+    origens: getActiveCatalogValues_(SHEETS.CAD_ORIGENS, 1, 2),
+    origemObrigatoria: isOriginRequired_()
   };
 }
 
@@ -77,14 +78,14 @@ function saveInspection(payload) {
     var client = payload.clienteManual || getClientByOP(payload.op) || '';
     var userEmail = Session.getActiveUser().getEmail() || '';
     var operators = normalizeOperators_(payload.operadores);
-    var defects = normalizeDefects_(payload.defeitos);
+    var defects = normalizeDefects_(normalizePayloadDefects_(payload.defeitos).items);
 
     appendRowsBatch_(SHEETS.INSPECOES, [[
       idInspecao,
       serverNow,
       String(payload.op).trim(),
       Number(payload.qtddRevisada),
-      String(payload.origem).trim(),
+      payload.origem ? String(payload.origem).trim() : '',
       String(client).trim(),
       userEmail,
       operators[0] || '',
