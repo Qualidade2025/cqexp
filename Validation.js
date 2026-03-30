@@ -15,7 +15,8 @@ function validateInspectionPayload_(payload) {
     throw new Error('Qtdd revisada deve ser maior que zero.');
   }
 
-  if (!payload.origem || !String(payload.origem).trim()) {
+  var originIsRequired = isOriginRequired_();
+  if (originIsRequired && (!payload.origem || !String(payload.origem).trim())) {
     throw new Error('Origem é obrigatória.');
   }
 
@@ -34,14 +35,15 @@ function validateInspectionPayload_(payload) {
     duplicateCheck[op.id] = true;
   });
 
-  if (!Array.isArray(payload.defeitos) || payload.defeitos.length < 1) {
-    throw new Error('Inclua ao menos 1 lançamento de defeito.');
+  var defects = normalizePayloadDefects_(payload.defeitos);
+  if (defects.hasPartialRows) {
+    throw new Error('Preencha posição, defeito e quantidade em cada lançamento iniciado.');
   }
 
   var defectCatalog = getDefectsByPositionCatalog_();
   var activePairs = defectCatalog.paresAtivos || {};
 
-  payload.defeitos.forEach(function (item, idx) {
+  defects.items.forEach(function (item, idx) {
     if (!item.posicao || !String(item.posicao).trim()) {
       throw new Error('Linha ' + (idx + 1) + ': posição é obrigatória.');
     }
@@ -63,4 +65,47 @@ function validateInspectionPayload_(payload) {
       throw new Error('Linha ' + (idx + 1) + ': defeito "' + item.defeito + '" não está ativo para posição "' + item.posicao + '".');
     }
   });
+}
+
+function normalizePayloadDefects_(rawDefects) {
+  if (!Array.isArray(rawDefects) || !rawDefects.length) {
+    return {
+      items: [],
+      hasPartialRows: false
+    };
+  }
+
+  var hasPartialRows = false;
+  var validItems = [];
+
+  rawDefects.forEach(function (item) {
+    var posicao = item && item.posicao ? String(item.posicao).trim() : '';
+    var defeito = item && item.defeito ? String(item.defeito).trim() : '';
+    var quantidadeRaw = item ? item.quantidade : '';
+    var quantidade = Number(quantidadeRaw);
+    var quantidadeInformada = String(quantidadeRaw === 0 ? '0' : (quantidadeRaw || '')).trim() !== '';
+
+    var hasAnyField = !!(posicao || defeito || quantidadeInformada);
+    var isComplete = !!(posicao && defeito && quantidadeInformada);
+
+    if (!hasAnyField) {
+      return;
+    }
+
+    if (!isComplete) {
+      hasPartialRows = true;
+      return;
+    }
+
+    validItems.push({
+      posicao: posicao,
+      defeito: defeito,
+      quantidade: quantidade
+    });
+  });
+
+  return {
+    items: validItems,
+    hasPartialRows: hasPartialRows
+  };
 }
