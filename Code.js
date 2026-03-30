@@ -18,8 +18,8 @@ function doGet(e) {
 }
 
 function getTemplateNameByPage_(page) {
-  if (page === 'listar-rncs') {
-    return 'ListarRncs';
+  if (page === 'listar-rncs' || page === 'listarcontroles' || page === 'listar-controles') {
+    return 'ListarControles';
   }
 
   if (page === 'editar-colaboradores') {
