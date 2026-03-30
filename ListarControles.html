@@ -166,6 +166,10 @@
       .nowrap {
         white-space: nowrap;
       }
+
+      #detailsEditBtn {
+        min-width: 96px;
+      }
     </style>
   </head>
   <body>
@@ -304,6 +308,10 @@
         </div>
 
         <p id="detailsFallback" class="hint" style="margin-top: 8px;"></p>
+
+        <div class="modal-actions">
+          <button id="detailsEditBtn" class="secondary" type="button">Editar</button>
+        </div>
       </section>
     </div>
 
@@ -322,6 +330,7 @@
           direction: 'asc'
         }
       };
+      var currentDetailsItem = null;
 
       if (typeof window.initThemeToggle_ === 'function') {
         window.initThemeToggle_();
@@ -352,6 +361,7 @@
         });
 
         document.getElementById('closeDetailsBtn').addEventListener('click', closeDetailsModal_);
+        document.getElementById('detailsEditBtn').addEventListener('click', handleEditDetails_);
 
         Array.prototype.slice.call(document.querySelectorAll('#inspectionsTable th[data-sort-key]')).forEach(function (header) {
           header.addEventListener('click', function () {
@@ -651,9 +661,67 @@
       }
 
       function closeDetailsModal_() {
+      currentDetailsItem = null;
         document.getElementById('detailsModal').classList.add('hidden');
       }
 
+
+      function handleEditDetails_() {
+        if (!currentDetailsItem) {
+          return;
+        }
+
+        var nextOp = window.prompt('Editar OP:', String(currentDetailsItem.op || '').trim());
+        if (nextOp === null) {
+          return;
+        }
+
+        var nextCliente = window.prompt('Editar Cliente:', String(currentDetailsItem.cliente || '').trim());
+        if (nextCliente === null) {
+          return;
+        }
+
+        var nextOrigem = window.prompt('Editar Origem:', String(currentDetailsItem.origem || '').trim());
+        if (nextOrigem === null) {
+          return;
+        }
+
+        var retrabalhoAtual = currentDetailsItem.retrabalho ? 'sim' : 'nao';
+        var nextRetrabalho = window.prompt('Retrabalho? (sim/nao)', retrabalhoAtual);
+        if (nextRetrabalho === null) {
+          return;
+        }
+
+        var retrabalhoNormalized = String(nextRetrabalho || '').trim().toLowerCase();
+        if (retrabalhoNormalized !== 'sim' && retrabalhoNormalized !== 'nao') {
+          setMessage_('Valor de retrabalho inválido. Use "sim" ou "nao".', 'error');
+          return;
+        }
+
+        if (!window.google || !google.script || !google.script.run) {
+          setMessage_('Ambiente do Apps Script indisponível para editar inspeções.', 'error');
+          return;
+        }
+
+        setMessage_('Salvando edição da inspeção...', 'info');
+        google.script.run
+          .withSuccessHandler(function () {
+            closeDetailsModal_();
+            loadInspections_();
+            setMessage_('Inspeção atualizada com sucesso.', 'success', true);
+          })
+          .withFailureHandler(function (error) {
+            setMessage_('Falha ao editar inspeção: ' + (error.message || error), 'error');
+          })
+          .updateInspectionControl({
+            idInspecao: currentDetailsItem.idInspecao,
+            sheetRowNumber: currentDetailsItem.sheetRowNumber,
+            op: String(nextOp || '').trim(),
+            cliente: String(nextCliente || '').trim(),
+            origem: String(nextOrigem || '').trim(),
+            retrabalho: retrabalhoNormalized === 'sim'
+          });
+      }
 
       function showInlineStatus_(elementId, text) {
         var target = document.getElementById(elementId);
