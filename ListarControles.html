@@ -172,7 +172,10 @@
     <main class="container">
       <section class="page-header">
         <div class="header-actions-left">
-          <button class="secondary" type="button" onclick="goBack_()">← Voltar</button>
+          <span class="button-with-status">
+            <button class="secondary" type="button" onclick="goBack_()">← Voltar</button>
+            <span id="goBackStatus" class="hint inline-status" aria-live="polite"></span>
+          </span>
         </div>
         <h2 class="page-title">Listar controles</h2>
         <div class="header-actions-right">
@@ -651,6 +654,16 @@
         document.getElementById('detailsModal').classList.add('hidden');
       }
 
+
+      function showInlineStatus_(elementId, text) {
+        var target = document.getElementById(elementId);
+        if (!target) {
+          return;
+        }
+
+        target.textContent = text || '';
+      }
+
       function navigateToMainPage_(url) {
         try {
           window.top.location.href = url;
@@ -660,6 +673,8 @@
       }
 
       function goBack_() {
+        showInlineStatus_('goBackStatus', 'Voltando...');
+
         if (window.APP_BASE_URL) {
           navigateToMainPage_(window.APP_BASE_URL);
           return;
