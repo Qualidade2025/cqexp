@@ -32,6 +32,11 @@
         white-space: nowrap;
       }
 
+      #inspectionsTable th {
+        text-align: center;
+        font-weight: 700;
+      }
+
       .pill {
         display: inline-flex;
         align-items: center;
@@ -52,9 +57,15 @@
 
       .details-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: 1fr 1fr 2fr 1fr 1fr;
         gap: 8px;
         margin: 10px 0;
+      }
+
+      @media (max-width: 960px) {
+        .details-list {
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
       }
 
       .details-box {
@@ -138,9 +149,9 @@
                 <th class="nowrap">ID</th>
                 <th class="nowrap">Data/Hora</th>
                 <th>OP</th>
+                <th>Cliente</th>
                 <th class="nowrap">Qtdd</th>
                 <th>Origem</th>
-                <th>Cliente</th>
                 <th>Operadores</th>
                 <th class="nowrap">Defeitos</th>
                 <th>Retrabalho</th>
@@ -165,10 +176,9 @@
         </div>
 
         <div class="details-list">
-          <div class="details-box"><p><strong>ID:</strong> <span id="detailsId"></span></p></div>
           <div class="details-box"><p><strong>Data:</strong> <span id="detailsDate"></span></p></div>
           <div class="details-box"><p><strong>OP:</strong> <span id="detailsOp"></span></p></div>
-          <div class="details-box"><p><strong>Criado por:</strong> <span id="detailsEmail"></span></p></div>
+          <div class="details-box"><p><strong>Cliente:</strong> <span id="detailsCliente"></span></p></div>
           <div class="details-box"><p><strong>Origem:</strong> <span id="detailsOrigem"></span></p></div>
           <div class="details-box"><p><strong>Retrabalho:</strong> <span id="detailsRetrabalho"></span></p></div>
         </div>
@@ -325,11 +335,11 @@
           appendCell_(tr, String(item.idInspecao || ''));
           appendCell_(tr, item.dataServidorLabel || '-');
           appendCell_(tr, item.op || '-');
+          appendCell_(tr, item.cliente || '-');
           appendCell_(tr, String(item.qtddRevisada || 0));
           appendCell_(tr, item.origem || '-');
-          appendCell_(tr, item.cliente || '-');
           appendCell_(tr, (item.operadores || []).join(', ') || '-');
-          appendCell_(tr, String(item.totalLancamentosDefeitos || 0));
+          appendCell_(tr, String(item.totalDefeitos || 0));
 
           var retrabalhoCell = document.createElement('td');
           var tag = document.createElement('span');
@@ -370,10 +380,9 @@
           return;
         }
 
-        document.getElementById('detailsId').textContent = String(item.idInspecao || '-');
         document.getElementById('detailsDate').textContent = item.dataServidorLabel || '-';
         document.getElementById('detailsOp').textContent = item.op || '-';
-        document.getElementById('detailsEmail').textContent = item.criadoPorEmail || '-';
+        document.getElementById('detailsCliente').textContent = item.cliente || '-';
         document.getElementById('detailsOrigem').textContent = item.origem || '-';
         document.getElementById('detailsRetrabalho').textContent = item.retrabalho ? 'Sim' : 'Não';
         document.getElementById('detailsOperators').textContent = 'Operadores: ' + ((item.operadores || []).join(', ') || '-');
