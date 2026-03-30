@@ -30,6 +30,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 12px;
+    margin-bottom: 14px;
   }
   label {
     display: flex;
@@ -79,12 +80,24 @@
     gap: 8px;
   }
   .selected-operators {
-    margin-top: 10px;
+    margin-bottom: 14px;
     padding: 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: #f9fafb;
     font-size: 14px;
+  }
+  .checkbox-row {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .checkbox-row input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
   }
   .operator-slot {
     font-size: 14px;
