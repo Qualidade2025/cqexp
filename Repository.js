@@ -392,9 +392,35 @@ function mapInspectionRow_(row, sheetRowNumber) {
     totalLancamentosDefeitos: Number(row[11]) || 0,
     defeitosJsonRaw: String(row[12] || '').trim(),
     defeitosResumo: String(row[13] || '').trim(),
+    totalDefeitos: getTotalDefeitosFromJson_(row[12], row[11]),
     retrabalho: isRetrabalhoFlag_(row[14]),
     sheetRowNumber: sheetRowNumber
   };
+}
+
+function getTotalDefeitosFromJson_(rawJson, fallbackValue) {
+  var fallback = Number(fallbackValue) || 0;
+  var normalized = String(rawJson || '').trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  try {
+    var parsed = JSON.parse(normalized);
+    if (!Array.isArray(parsed)) {
+      return fallback;
+    }
+
+    return parsed.reduce(function (total, defect) {
+      var quantidade = Number(defect && defect.quantidade);
+      if (!isFinite(quantidade) || quantidade < 0) {
+        return total;
+      }
+      return total + quantidade;
+    }, 0);
+  } catch (error) {
+    return fallback;
+  }
 }
 
 function matchesInspectionFilters_(item, filters) {
