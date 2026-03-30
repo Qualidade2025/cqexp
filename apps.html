@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function bindActions_() {
-    document.getElementById('listRncsBtn').addEventListener('click', function () {
+  document.getElementById('listRncsBtn').addEventListener('click', function () {
+    showInlineStatus_('listRncsStatus', 'Carregando...');
     openAppPage_('listar-rncs');
   });
 
@@ -152,6 +153,16 @@ function openOperatorModal_(required) {
 function closeOperatorModal_() {
   document.getElementById('operatorModal').classList.add('hidden');
   document.getElementById('operatorModalError').textContent = '';
+}
+
+
+function showInlineStatus_(elementId, text) {
+  var target = document.getElementById(elementId);
+  if (!target) {
+    return;
+  }
+
+  target.textContent = text || '';
 }
 
 function openAppPage_(page) {
