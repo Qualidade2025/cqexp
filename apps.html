@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function bindActions_() {
+  document.getElementById('op').addEventListener('blur', function () {
+    tryAutoFillClientByOp_();
+  });
+
   document.getElementById('listRncsBtn').addEventListener('click', function () {
     showInlineStatus_('listRncsStatus', 'Carregando...');
     openAppPage_('listar-rncs');
@@ -443,6 +447,25 @@ function buildPayload_() {
     operadores: state.selectedOperators,
     defeitos: defects
   };
+}
+
+function tryAutoFillClientByOp_() {
+  var opField = document.getElementById('op');
+  var clientField = document.getElementById('clienteManual');
+  var normalizedOp = String(opField.value || '').trim();
+
+  if (!/^\d{5}$/.test(normalizedOp)) {
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function (cliente) {
+      clientField.value = String(cliente || '').trim();
+    })
+    .withFailureHandler(function () {
+      // Em caso de falha na consulta automática, mantém campo editável manualmente.
+    })
+    .getClientByOP(normalizedOp);
 }
 
 function saveInspection_() {
