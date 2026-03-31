@@ -455,15 +455,19 @@ function tryAutoFillClientByOp_() {
   var normalizedOp = String(opField.value || '').trim();
 
   if (!/^\d{5}$/.test(normalizedOp)) {
+    clientField.readOnly = false;
     return;
   }
 
   google.script.run
     .withSuccessHandler(function (cliente) {
-      clientField.value = String(cliente || '').trim();
+      var normalizedClient = String(cliente || '').trim();
+      clientField.value = normalizedClient;
+      clientField.readOnly = !!normalizedClient;
     })
     .withFailureHandler(function () {
       // Em caso de falha na consulta automática, mantém campo editável manualmente.
+      clientField.readOnly = false;
     })
     .getClientByOP(normalizedOp);
 }
@@ -492,6 +496,7 @@ function resetForm_() {
   document.getElementById('qtddRevisada').value = '';
   document.getElementById('origem').value = '';
   document.getElementById('clienteManual').value = '';
+  document.getElementById('clienteManual').readOnly = false;
   document.getElementById('retrabalho').checked = false;
 
   clearDefectRows_();
