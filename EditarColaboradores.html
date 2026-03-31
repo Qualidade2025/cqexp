@@ -1,267 +1,243 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top" />
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Colaboradores</title>
-    <?!= include('styles') ?>
-  </head>
-  <body>
-    <main class="container">
-      <section class="top-actions">
-        <button class="secondary" type="button" onclick="goBack_()">← Voltar</button>
-        <button class="secondary theme-toggle" type="button" data-theme-toggle aria-label="Alternar tema">🌙</button>
-      </section>
+/**
+ * Renderiza UI web do MVP.
+ */
+function doGet(e) {
+  var page = '';
+  try {
+    page = String((e && e.parameter && e.parameter.page) || '').trim();
+  } catch (error) {
+    page = '';
+  }
 
-      <section class="card">
-        <div class="defect-header">
-          <h2>Colaboradores</h2>
-          <button id="addCollaboratorBtn" class="secondary" type="button">+ Adicionar colaborador</button>
-        </div>
+  var templateName = getTemplateNameByPage_(page);
+  var template = HtmlService.createTemplateFromFile(templateName);
+  template.appBaseUrl = getAppBaseUrl_();
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>Ativo</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="collaboratorsRows"></tbody>
-          </table>
-        </div>
-      </section>
+  return template.evaluate()
+    .setTitle('Controle de Qualidade - BALDI')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
 
-      <section class="actions">
-        <button id="saveBtn" type="button">Salvar</button>
-        <span id="saveStatus" class="hint" aria-live="polite"></span>
-      </section>
+function getAppBaseUrl_() {
+  try {
+    return ScriptApp.getService().getUrl() || '';
+  } catch (error) {
+    return '';
+  }
+}
 
-      <section id="messageBox" class="message" aria-live="polite"></section>
-    </main>
+function getTemplateNameByPage_(page) {
+  if (page === 'index' || page === 'home' || page === 'inicio') {
+    return 'Index';
+  }
 
-    <script>
-      window.APP_BASE_URL = <?!= JSON.stringify(appBaseUrl || '') ?>;
+  if (page === 'listar-rncs' || page === 'listarcontroles' || page === 'listar-controles') {
+    return 'ListarControles';
+  }
 
-      if (typeof window.initThemeToggle_ === 'function') {
-        window.initThemeToggle_();
-      }
+  if (page === 'editar-colaboradores') {
+    return 'EditarColaboradores';
+  }
 
-      function initPage_() {
-        var addCollaboratorBtn = document.getElementById('addCollaboratorBtn');
-        if (addCollaboratorBtn && !addCollaboratorBtn.dataset.bound) {
-          addCollaboratorBtn.addEventListener('click', function () {
-            addRow_({ id: getNextCollaboratorId_(), name: '', active: true, isNew: true, isEditing: true });
-          });
-          addCollaboratorBtn.dataset.bound = 'true';
-        }
+  return 'Index';
+}
 
-        var saveBtn = document.getElementById('saveBtn');
-        if (saveBtn && !saveBtn.dataset.bound) {
-          saveBtn.addEventListener('click', saveChanges_);
-          saveBtn.dataset.bound = 'true';
-        }
 
-        loadRows_();
-      }
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
 
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initPage_);
-      } else {
-        initPage_();
-      }
+/**
+ * Retorna catálogos para preencher dropdowns no front-end.
+ */
+function getCatalogs() {
+  var defectCatalog = getDefectsByPositionCatalog_();
 
-      function navigateToMainPage_(url) {
-        try {
-          window.top.location.href = url;
-        } catch (error) {
-          window.location.href = url;
-        }
-      }
+  return {
+    colaboradores: getActiveCollaborators_(),
+    posicoes: defectCatalog.posicoes,
+    defeitos: defectCatalog.defeitos,
+    defeitosPorPosicao: defectCatalog.defeitosPorPosicao,
+    origens: getActiveCatalogValues_(SHEETS.CAD_ORIGENS, 1, 2),
+    origemObrigatoria: isOriginRequired_()
+  };
+}
 
-      function goBack_() {
-        if (window.APP_BASE_URL) {
-          navigateToMainPage_(window.APP_BASE_URL);
-          return;
-        }
+/**
+ * Grava inspeção em linha única na aba inspecoes com lock para concorrência.
+ */
+function saveInspection(payload) {
+  validateInspectionPayload_(payload);
 
-        var fallbackUrl = new URL(window.location.href);
-        fallbackUrl.searchParams.set('page', 'index');
-        navigateToMainPage_(fallbackUrl.toString());
-      }
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
 
-      function loadRows_() {
-        setMessage_('Carregando colaboradores...', 'info');
+  try {
+    var idInspecao = getNextInspectionId_();
+    var serverNow = new Date();
+    var client = payload.clienteManual || getClientByOP(payload.op) || '';
+    var userEmail = Session.getActiveUser().getEmail() || '';
+    var operators = normalizeOperators_(payload.operadores);
+    var defects = normalizeDefects_(normalizePayloadDefects_(payload.defeitos).items);
 
-        if (!window.google || !google.script || !google.script.run) {
-          setMessage_('Falha ao carregar colaboradores: ambiente do Apps Script indisponível.', 'error');
-          return;
-        }
+    appendRowsBatch_(SHEETS.INSPECOES, [[
+      idInspecao,
+      serverNow,
+      String(payload.op).trim(),
+      Number(payload.qtddRevisada),
+      payload.origem ? String(payload.origem).trim() : '',
+      String(client).trim(),
+      userEmail,
+      operators[0] || '',
+      operators[1] || '',
+      operators[2] || '',
+      operators[3] || '',
+      defects.length,
+      JSON.stringify(defects),
+      defects.map(function (item) {
+        return item.posicao + ' / ' + item.defeito + ' / ' + item.quantidade;
+      }).join(' | '),
+      payload.retrabalho ? 'X' : ''
+    ]]);
 
-        try {
-          google.script.run
-            .withSuccessHandler(function (rows) {
-              renderRows_(Array.isArray(rows) ? rows : []);
-              setMessage_('', 'info');
-            })
-            .withFailureHandler(function (error) {
-              setMessage_('Falha ao carregar colaboradores: ' + (error.message || error), 'error');
-            })
-            .listCollaboratorsControls();
-        } catch (error) {
-          setMessage_('Falha ao carregar colaboradores: ' + (error.message || error), 'error');
-        }
-      }
+    return {
+      ok: true,
+      idInspecao: idInspecao,
+      serverNow: serverNow
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
 
-      function renderRows_(rows) {
-        var tbody = document.getElementById('collaboratorsRows');
-        tbody.innerHTML = '';
+function getNextInspectionId_() {
+  var sheet = getRequiredSheet_(SHEETS.INSPECOES);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return 1;
+  }
 
-        rows.forEach(function (row) {
-          addRow_(row);
-        });
-      }
+  var lastValue = sheet.getRange(lastRow, 1).getValue();
+  var parsedValue = Number(lastValue);
 
-      function addRow_(row) {
-        var tbody = document.getElementById('collaboratorsRows');
-        var tr = document.createElement('tr');
+  if (!isFinite(parsedValue) || parsedValue < 1) {
+    return 1;
+  }
 
-        var isEditing = !!row.isEditing;
+  return Math.floor(parsedValue) + 1;
+}
 
-        var idCell = document.createElement('td');
-        var idInput = document.createElement('input');
-        idInput.type = 'text';
-        idInput.maxLength = 50;
-        idInput.value = String(row.id || '').trim();
-        idInput.disabled = true;
-        idInput.placeholder = 'ID';
-        idCell.appendChild(idInput);
+function normalizeOperators_(operators) {
+  return operators.map(function (op) {
+    return [String(op.id).trim(), String(op.name).trim()].join(' - ');
+  });
+}
 
-        var nameCell = document.createElement('td');
-        var nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.maxLength = 120;
-        nameInput.value = String(row.name || '').trim();
-        nameInput.disabled = !isEditing;
-        nameInput.placeholder = 'Nome';
-        nameCell.appendChild(nameInput);
+function normalizeDefects_(defects) {
+  return defects.map(function (item, index) {
+    return {
+      linha: index + 1,
+      posicao: String(item.posicao).trim(),
+      defeito: String(item.defeito).trim(),
+      quantidade: Number(item.quantidade)
+    };
+  });
+}
 
-        var activeCell = document.createElement('td');
-        var activeInput = document.createElement('input');
-        activeInput.type = 'checkbox';
-        activeInput.checked = row.active !== false;
-        activeInput.disabled = !isEditing;
-        activeCell.appendChild(activeInput);
+/**
+ * Busca cliente na aba op_cliente para OPs com 5 dígitos numéricos.
+ */
+function getClientByOP(op) {
+  var normalizedOp = String(op || '').trim();
+  if (!/^\d{5}$/.test(normalizedOp)) {
+    return '';
+  }
 
-        var actionCell = document.createElement('td');
-        var editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.className = 'secondary';
-        editBtn.textContent = isEditing ? 'Concluir' : 'Editar';
+  var sheet = getOptionalSheet_(SHEETS.OP_CLIENTE);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return '';
+  }
 
-        editBtn.addEventListener('click', function () {
-          var nowEditing = editBtn.textContent === 'Editar';
-          editBtn.textContent = nowEditing ? 'Concluir' : 'Editar';
-          nameInput.disabled = !nowEditing;
-          activeInput.disabled = !nowEditing;
-        });
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
+  for (var i = 0; i < values.length; i += 1) {
+    if (String(values[i][0] || '').trim() === normalizedOp) {
+      return String(values[i][1] || '').trim();
+    }
+  }
 
-        actionCell.appendChild(editBtn);
+  return '';
+}
 
-        tr.appendChild(idCell);
-        tr.appendChild(nameCell);
-        tr.appendChild(activeCell);
-        tr.appendChild(actionCell);
 
-        tbody.appendChild(tr);
-      }
+function healthcheck() {
+  return {
+    ok: true,
+    timestamp: new Date(),
+    spreadsheetId: SpreadsheetApp.getActiveSpreadsheet().getId()
+  };
+}
 
-      function getNextCollaboratorId_() {
-        var rows = Array.prototype.slice.call(document.querySelectorAll('#collaboratorsRows tr'));
-        var maxNumericId = 0;
-        var detectedPrefix = '';
-        var detectedDigits = 0;
+function validateCollaboratorsPassword(password) {
+  var enteredPassword = String(password || '').trim();
+  if (!enteredPassword) {
+    throw new Error('Informe a senha.');
+  }
 
-        rows.forEach(function (tr) {
-          var idInput = tr && tr.cells && tr.cells[0] ? tr.cells[0].querySelector('input') : null;
-          var value = String(idInput && idInput.value ? idInput.value : '').trim();
-          var prefixedMatch = value.match(/^([A-Za-z]+)(\d+)$/);
+  var expectedPassword = getCollaboratorsEditPassword_();
+  if (!expectedPassword) {
+    throw new Error('Senha de edição não configurada em colaboradores!E2.');
+  }
 
-          if (prefixedMatch) {
-            var prefix = prefixedMatch[1];
-            var numericPart = prefixedMatch[2];
-            var parsedPrefixed = parseInt(numericPart, 10);
+  if (enteredPassword !== expectedPassword) {
+    throw new Error('Senha inválida.');
+  }
 
-            if (isFinite(parsedPrefixed) && parsedPrefixed > maxNumericId) {
-              maxNumericId = parsedPrefixed;
-              detectedPrefix = prefix;
-              detectedDigits = numericPart.length;
-            }
-            return;
-          }
+  return {
+    ok: true
+  };
+}
 
-          var parsed = parseInt(value, 10);
-          if (isFinite(parsed) && parsed > maxNumericId) {
-            maxNumericId = parsed;
-          }
-        });
+function listCollaboratorsControls() {
+  return getCollaboratorsForControlList_();
+}
 
-        var nextNumericId = maxNumericId + 1;
-        if (detectedPrefix) {
-          var paddedNumericId = String(nextNumericId);
-          while (paddedNumericId.length < detectedDigits) {
-            paddedNumericId = '0' + paddedNumericId;
-          }
-          return detectedPrefix + paddedNumericId;
-        }
+function saveCollaboratorsControls(rows) {
+  if (!Array.isArray(rows) || !rows.length) {
+    throw new Error('Adicione ao menos um colaborador.');
+  }
 
-        return String(nextNumericId);
-      }
+  var normalized = [];
+  var ids = {};
 
-      function collectRows_() {
-        var bodyRows = Array.prototype.slice.call(document.querySelectorAll('#collaboratorsRows tr'));
+  rows.forEach(function (row, index) {
+    var id = row && row.id ? String(row.id).trim() : '';
+    var name = row && row.name ? String(row.name).trim() : '';
+    var active = !!(row && row.active);
 
-        return bodyRows.map(function (tr) {
-          return {
-            id: String(tr.cells[0].querySelector('input').value || '').trim(),
-            name: String(tr.cells[1].querySelector('input').value || '').trim(),
-            active: !!tr.cells[2].querySelector('input').checked
-          };
-        });
-      }
+    if (!id) {
+      throw new Error('Linha ' + (index + 1) + ': informe o ID.');
+    }
 
-      function saveChanges_() {
-        var saveBtn = document.getElementById('saveBtn');
-        var saveStatus = document.getElementById('saveStatus');
+    if (!name) {
+      throw new Error('Linha ' + (index + 1) + ': informe o nome.');
+    }
 
-        if (!window.google || !google.script || !google.script.run) {
-          setMessage_('Falha ao salvar colaboradores: ambiente do Apps Script indisponível.', 'error');
-          return;
-        }
+    if (ids[id]) {
+      throw new Error('ID duplicado: ' + id + '.');
+    }
+    ids[id] = true;
 
-        saveBtn.disabled = true;
-        saveStatus.textContent = 'Salvando...';
+    normalized.push([id, name, active]);
+  });
 
-        google.script.run
-          .withSuccessHandler(function () {
-            goBack_();
-          })
-          .withFailureHandler(function (error) {
-            saveBtn.disabled = false;
-            saveStatus.textContent = '';
-            setMessage_('Falha ao salvar colaboradores: ' + (error.message || error), 'error');
-          })
-          .saveCollaboratorsControls(collectRows_());
-      }
+  saveCollaboratorsControlList_(normalized);
+  return { ok: true };
+}
 
-      function setMessage_(text, type) {
-        var messageBox = document.getElementById('messageBox');
-        messageBox.textContent = text || '';
-        messageBox.className = 'message' + (type ? ' ' + type : '');
-      }
-    </script>
-  </body>
-</html>
+function listInspectionsControls(params) {
+  return listInspectionsControls_(params);
+}
+
+function updateInspectionControl(payload) {
+  return updateInspectionControl_(payload);
+}
