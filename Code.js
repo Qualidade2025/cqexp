@@ -51,7 +51,7 @@ function include(filename) {
  * Configuração temporária de conexão JDBC para SQL Server.
  * IMPORTANTE: manter apenas provisoriamente; migrar para armazenamento seguro.
  */
-var DB_URL = 'jdbc:sqlserver://SEU_HOST:1433;databaseName=SUA_BASE;encrypt=true;trustServerCertificate=true';
+var DB_URL = 'jdbc:sqlserver://SEU_HOST:1433;databaseName=SUA_BASE';
 var DB_USER = 'SEU_USUARIO';
 var DB_PASS = 'SUA_SENHA';
 
@@ -171,7 +171,7 @@ function buscarClientePorOP(opNumero) {
 
   try {
     etapa = 'conexao_jdbc';
-    conn = Jdbc.getConnection(DB_URL, DB_USER, DB_PASS);
+    conn = Jdbc.getConnection(getJdbcConnectionUrl_(), DB_USER, DB_PASS);
 
     etapa = 'preparo_sql';
     stmt = conn.prepareStatement('SELECT TOP 1 belnr_id, kndname FROM beas_fthapt WHERE belnr_id = ?');
@@ -220,6 +220,60 @@ function buscarClientePorOP(opNumero) {
       }
     }
   }
+}
+
+/**
+ * Remove propriedades JDBC não suportadas pelo serviço JDBC do Apps Script.
+ * Isso evita erro de conexão como:
+ * "The following connection properties are unsupported: encrypt".
+ * @return {string}
+ */
+function getJdbcConnectionUrl_() {
+  var rawUrl = String(DB_URL || '').trim();
+  if (!rawUrl) {
+    throw new Error('DB_URL não configurada.');
+  }
+
+  var unsupportedProps = {
+    encrypt: true,
+    trustservercertificate: true
+  };
+
+  var parts = rawUrl.split(';');
+  var keptParts = [];
+  var removedProps = [];
+
+  parts.forEach(function (part, index) {
+    var trimmedPart = String(part || '').trim();
+    if (!trimmedPart) {
+      return;
+    }
+
+    if (index === 0 && trimmedPart.indexOf('jdbc:sqlserver://') === 0) {
+      keptParts.push(trimmedPart);
+      return;
+    }
+
+    var equalsIndex = trimmedPart.indexOf('=');
+    if (equalsIndex === -1) {
+      keptParts.push(trimmedPart);
+      return;
+    }
+
+    var key = trimmedPart.substring(0, equalsIndex).trim().toLowerCase();
+    if (unsupportedProps[key]) {
+      removedProps.push(key);
+      return;
+    }
+
+    keptParts.push(trimmedPart);
+  });
+
+  if (removedProps.length) {
+    Logger.log('[getJdbcConnectionUrl_] Removendo propriedades não suportadas: %s', removedProps.join(', '));
+  }
+
+  return keptParts.join(';');
 }
 
 /**
