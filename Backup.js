@@ -12,38 +12,33 @@ function exportMonthlyInspectionsBackup() {
   var year = Utilities.formatDate(now, 'Etc/GMT-3', 'yyyy');
   var baseName = 'inspecoes-' + month + '.' + year;
 
-  var tempSpreadsheet = SpreadsheetApp.create(baseName + '-tmp');
+  SpreadsheetApp.flush();
+  Utilities.sleep(1500);
 
-  try {
-    var tempSheet = tempSpreadsheet.getSheets()[0];
-    tempSheet.setName(SHEETS.INSPECOES);
+  var xlsxBlob = exportSpreadsheetBlob_(ss.getId(), {
+    format: 'xlsx',
+    filename: baseName + '.xlsx'
+  });
 
-    var lastRow = inspectionsSheet.getLastRow();
-    var lastCol = inspectionsSheet.getLastColumn();
-    if (lastCol < 1) {
-      throw new Error('A aba "inspecoes" não possui colunas para exportação.');
-    }
+  var csvBlob = exportSpreadsheetBlob_(ss.getId(), {
+    format: 'csv',
+    filename: baseName + '.csv',
+    gid: inspectionsSheet.getSheetId()
+  });
 
-    var values = inspectionsSheet.getRange(1, 1, Math.max(lastRow, 1), lastCol).getValues();
-    tempSheet.getRange(1, 1, values.length, values[0].length).setValues(values);
+  ensureNonEmptyBackupBlob_(xlsxBlob, 'xlsx');
+  ensureNonEmptyBackupBlob_(csvBlob, 'csv');
 
-    var tempId = tempSpreadsheet.getId();
-    var xlsxBlob = exportSpreadsheetBlob_(tempId, 'xlsx', baseName + '.xlsx');
-    var csvBlob = exportSpreadsheetBlob_(tempId, 'csv', baseName + '.csv');
+  folder.createFile(xlsxBlob);
+  folder.createFile(csvBlob);
 
-    folder.createFile(xlsxBlob);
-    folder.createFile(csvBlob);
+  clearInspectionsDataRows_();
 
-    clearInspectionsDataRows_();
-
-    return {
-      ok: true,
-      files: [baseName + '.xlsx', baseName + '.csv'],
-      folderId: folder.getId()
-    };
-  } finally {
-    DriveApp.getFileById(tempSpreadsheet.getId()).setTrashed(true);
-  }
+  return {
+    ok: true,
+    files: [baseName + '.xlsx', baseName + '.csv'],
+    folderId: folder.getId()
+  };
 }
 
 /**
@@ -90,8 +85,16 @@ function getBackupFolderFromCollaborators_() {
   return DriveApp.getFolderById(folderIdMatch[0]);
 }
 
-function exportSpreadsheetBlob_(spreadsheetId, format, filename) {
+function exportSpreadsheetBlob_(spreadsheetId, options) {
+  var format = options.format;
+  var filename = options.filename;
+  var gid = options.gid;
   var exportUrl = 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/export?format=' + encodeURIComponent(format);
+
+  if (gid || gid === 0) {
+    exportUrl += '&gid=' + encodeURIComponent(gid);
+  }
+
   var response = UrlFetchApp.fetch(exportUrl, {
     headers: {
       Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
@@ -100,6 +103,12 @@ function exportSpreadsheetBlob_(spreadsheetId, format, filename) {
   });
 
   return response.getBlob().setName(filename);
+}
+
+function ensureNonEmptyBackupBlob_(blob, format) {
+  if (!blob || blob.getBytes().length === 0) {
+    throw new Error('Falha ao gerar backup ' + format.toUpperCase() + ': arquivo vazio.');
+  }
 }
 
 function clearInspectionsDataRows_() {
