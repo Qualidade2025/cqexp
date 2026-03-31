@@ -496,6 +496,21 @@
       </section>
     </div>
 
+    <div id="inspectionPasswordModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="inspectionPasswordModalTitle">
+      <section class="modal-card modal-card-sm">
+        <div class="modal-header">
+          <h3 id="inspectionPasswordModalTitle">Senha</h3>
+          <button id="closeInspectionPasswordBtn" class="icon-btn" type="button" aria-label="Fechar modal de senha">×</button>
+        </div>
+        <label class="sr-only" for="inspectionEditPassword">Senha</label>
+        <input id="inspectionEditPassword" type="password" autocomplete="current-password" aria-label="Senha para editar inspeção" />
+        <div class="modal-actions">
+          <span id="inspectionPasswordModalError" class="message error modal-inline-message"></span>
+          <button id="confirmInspectionPasswordBtn" type="button">OK</button>
+        </div>
+      </section>
+    </div>
+
     <div id="editSavingOverlay" class="startup-loading hidden" role="status" aria-live="polite">
       <div class="startup-loading-card">
         <span class="loading-spinner" aria-hidden="true"></span>
@@ -558,6 +573,8 @@
         document.getElementById('detailsEditBtn').addEventListener('click', handleEditDetails_);
         document.getElementById('closeEditDetailsBtn').addEventListener('click', closeEditModal_);
         document.getElementById('cancelEditDetailsBtn').addEventListener('click', closeEditModal_);
+        document.getElementById('closeInspectionPasswordBtn').addEventListener('click', closeInspectionPasswordModal_);
+        document.getElementById('confirmInspectionPasswordBtn').addEventListener('click', confirmInspectionPassword_);
         document.getElementById('editDetailsForm').addEventListener('submit', submitEditDetails_);
 
         Array.prototype.slice.call(document.querySelectorAll('#inspectionsTable th[data-sort-key]')).forEach(function (header) {
@@ -973,7 +990,8 @@
       }
 
       function closeDetailsModal_() {
-      currentDetailsItem = null;
+        currentDetailsItem = null;
+        closeInspectionPasswordModal_();
         document.getElementById('detailsModal').classList.add('hidden');
       }
 
@@ -984,6 +1002,55 @@
           return;
         }
 
+        openInspectionPasswordModal_();
+      }
+
+      function openInspectionPasswordModal_() {
+        var passwordInput = document.getElementById('inspectionEditPassword');
+        var errorBox = document.getElementById('inspectionPasswordModalError');
+
+        errorBox.textContent = '';
+        errorBox.className = 'message error modal-inline-message';
+        passwordInput.value = '';
+        document.getElementById('inspectionPasswordModal').classList.remove('hidden');
+        passwordInput.focus();
+      }
+
+      function closeInspectionPasswordModal_() {
+        document.getElementById('inspectionPasswordModal').classList.add('hidden');
+        document.getElementById('inspectionPasswordModalError').textContent = '';
+      }
+
+      function confirmInspectionPassword_() {
+        if (!window.google || !google.script || !google.script.run) {
+          setMessage_('Ambiente do Apps Script indisponível para validar a senha.', 'error');
+          return;
+        }
+
+        var password = String(document.getElementById('inspectionEditPassword').value || '');
+        var errorBox = document.getElementById('inspectionPasswordModalError');
+        var confirmBtn = document.getElementById('confirmInspectionPasswordBtn');
+
+        errorBox.textContent = '';
+        confirmBtn.disabled = true;
+        errorBox.className = 'message info modal-inline-message';
+        errorBox.textContent = 'Validando...';
+
+        google.script.run
+          .withSuccessHandler(function () {
+            confirmBtn.disabled = false;
+            closeInspectionPasswordModal_();
+            openEditModal_();
+          })
+          .withFailureHandler(function (error) {
+            confirmBtn.disabled = false;
+            errorBox.className = 'message error modal-inline-message';
+            errorBox.textContent = error.message || String(error);
+          })
+          .validateCollaboratorsPassword(password);
+      }
+
+      function openEditModal_() {
         populateEditForm_(currentDetailsItem);
         document.getElementById('editDetailsModal').classList.remove('hidden');
       }
