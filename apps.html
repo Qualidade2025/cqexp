@@ -502,10 +502,16 @@ function buscarClientePorOP_() {
       clienteField.value = result.cliente || '';
       setMessage_('Cliente carregado automaticamente para OP ' + result.op + '.', 'success', true);
     })
-    .withFailureHandler(function () {
+    .withFailureHandler(function (error) {
       buscarBtn.disabled = false;
       clienteField.value = '';
-      setMessage_('Falha ao consultar cliente. Verifique conexão e tente novamente.', 'error');
+
+      var detailedMessage = error && error.message ? error.message : String(error || 'Erro desconhecido');
+      console.error('[buscarClientePorOP_] Falha na busca da OP', {
+        op: op,
+        erro: detailedMessage
+      });
+      setMessage_('Falha ao consultar cliente: ' + detailedMessage, 'error');
     })
     .buscarClientePorOP(op);
 }
