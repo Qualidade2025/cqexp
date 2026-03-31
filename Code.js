@@ -52,8 +52,60 @@ function include(filename) {
  * IMPORTANTE: manter apenas provisoriamente; migrar para armazenamento seguro.
  */
 var DB_URL = 'jdbc:sqlserver://SEU_HOST:1433;databaseName=SUA_BASE';
-var DB_USER = 'SEU_USUARIO';
-var DB_PASS = 'SUA_SENHA';
+var DB_USER = 'baldi';
+var DB_PASS = 'b4ldi@2023';
+
+/**
+ * Executa um teste de conexão JDBC com diagnóstico detalhado.
+ * Pode ser chamado manualmente no editor do Apps Script para validar a configuração.
+ * @return {{ok: boolean, etapa: string, mensagem: string, jdbcUrl: string}}
+ */
+function testarConexaoBancoDados() {
+  var conn = null;
+  var etapa = 'validacao_config';
+  var jdbcUrl = '';
+
+  try {
+    validarConfiguracaoJdbc_();
+
+    etapa = 'montagem_url';
+    jdbcUrl = getJdbcConnectionUrl_();
+
+    etapa = 'conexao_jdbc';
+    conn = Jdbc.getConnection(jdbcUrl, DB_USER, DB_PASS);
+
+    etapa = 'validacao_conexao';
+    if (!conn || conn.isClosed()) {
+      throw new Error('A conexão foi aberta e imediatamente fechada pelo driver.');
+    }
+
+    var response = {
+      ok: true,
+      etapa: etapa,
+      mensagem: 'Conexão com banco estabelecida com sucesso.',
+      jdbcUrl: jdbcUrl
+    };
+    Logger.log('[testarConexaoBancoDados] %s', JSON.stringify(response));
+    return response;
+  } catch (error) {
+    var message = error && error.message ? error.message : String(error);
+    Logger.log('[testarConexaoBancoDados] Falha na etapa %s. Detalhes: %s', etapa, message);
+    return {
+      ok: false,
+      etapa: etapa,
+      mensagem: 'Falha no teste de conexão: ' + message,
+      jdbcUrl: jdbcUrl
+    };
+  } finally {
+    if (conn) {
+      try {
+        conn.close();
+      } catch (closeConnError) {
+        Logger.log('[testarConexaoBancoDados] Falha ao fechar Connection: %s', closeConnError && closeConnError.message ? closeConnError.message : closeConnError);
+      }
+    }
+  }
+}
 
 /**
  * Retorna catálogos para preencher dropdowns no front-end.
