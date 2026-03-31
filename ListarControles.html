@@ -192,6 +192,43 @@
         grid-column: 1 / -1;
       }
 
+      #editDetailsModal .modal-card {
+        width: min(980px, 100%);
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+      }
+
+      .edit-modal-block {
+        margin-top: 12px;
+      }
+
+      .edit-modal-block:first-of-type {
+        margin-top: 8px;
+      }
+
+      .edit-defect-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .edit-defect-header h4 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      #editDefectRows .posicao,
+      #editDefectRows .defeito {
+        width: 100%;
+        min-width: 120px;
+      }
+
+      #editDefectRows .quantidade {
+        width: 100px;
+      }
+
       @media (max-width: 920px) {
         .edit-form-grid {
           grid-template-columns: 1fr;
@@ -350,71 +387,88 @@
         </div>
 
         <form id="editDetailsForm">
-          <div class="edit-form-grid">
-            <label>
-              ID
-              <input id="editIdInspecao" type="text" readonly />
-            </label>
-            <label>
-              Data/Hora
-              <input id="editDataServidor" type="datetime-local" />
-            </label>
-            <label>
-              OP
-              <input id="editOp" type="text" maxlength="80" />
-            </label>
-            <label>
-              Quantidade revisada
-              <input id="editQtddRevisada" type="number" min="0" step="1" />
-            </label>
-            <label>
-              Origem
-              <input id="editOrigem" type="text" maxlength="120" />
-            </label>
-            <label>
-              Cliente
-              <input id="editCliente" type="text" maxlength="180" />
-            </label>
-            <label>
-              Criado por (e-mail)
-              <input id="editCriadoPorEmail" type="email" maxlength="180" />
-            </label>
-            <label>
-              Retrabalho
-              <select id="editRetrabalho">
-                <option value="nao">Não</option>
-                <option value="sim">Sim</option>
-              </select>
-            </label>
-            <label>
-              Operador 1
-              <input id="editOperador1" type="text" maxlength="180" />
-            </label>
-            <label>
-              Operador 2
-              <input id="editOperador2" type="text" maxlength="180" />
-            </label>
-            <label>
-              Operador 3
-              <input id="editOperador3" type="text" maxlength="180" />
-            </label>
-            <label>
-              Operador 4
-              <input id="editOperador4" type="text" maxlength="180" />
-            </label>
-            <label>
-              Total de lançamentos
-              <input id="editTotalLancamentos" type="number" min="0" step="1" />
-            </label>
-            <label class="full-width">
-              Defeitos (JSON)
-              <textarea id="editDefeitosJson"></textarea>
-            </label>
-            <label class="full-width">
-              Resumo dos defeitos
-              <textarea id="editDefeitosResumo"></textarea>
-            </label>
-          </div>
+          <section class="card edit-modal-block">
+            <div class="section-header">
+              <h2>Identificação</h2>
+            </div>
+            <div class="edit-form-grid">
+              <label>
+                ID
+                <input id="editIdInspecao" type="text" readonly />
+              </label>
+              <label>
+                Data/Hora
+                <input id="editDataServidor" type="datetime-local" />
+              </label>
+              <label>
+                OP
+                <input id="editOp" type="text" maxlength="80" />
+              </label>
+              <label>
+                Quantidade revisada
+                <input id="editQtddRevisada" type="number" min="0" step="1" />
+              </label>
+              <label>
+                Origem
+                <input id="editOrigem" type="text" maxlength="120" />
+              </label>
+              <label>
+                Cliente
+                <input id="editCliente" type="text" maxlength="180" />
+              </label>
+              <label>
+                Criado por (e-mail)
+                <input id="editCriadoPorEmail" type="email" maxlength="180" />
+              </label>
+              <label>
+                Retrabalho
+                <select id="editRetrabalho">
+                  <option value="nao">Não</option>
+                  <option value="sim">Sim</option>
+                </select>
+              </label>
+              <label>
+                Operador 1
+                <input id="editOperador1" type="text" maxlength="180" />
+              </label>
+              <label>
+                Operador 2
+                <input id="editOperador2" type="text" maxlength="180" />
+              </label>
+              <label>
+                Operador 3
+                <input id="editOperador3" type="text" maxlength="180" />
+              </label>
+              <label>
+                Operador 4
+                <input id="editOperador4" type="text" maxlength="180" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card edit-modal-block">
+            <div class="edit-defect-header">
+              <h4>Defeitos</h4>
+              <button id="addEditDefectBtn" class="secondary" type="button">+ Adicionar lançamento</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Posição</th>
+                    <th>Defeito</th>
+                    <th>Quantidade</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="editDefectRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <input id="editTotalLancamentos" type="hidden" />
+          <textarea id="editDefeitosJson" hidden></textarea>
+          <textarea id="editDefeitosResumo" hidden></textarea>
 
           <div class="modal-actions">
             <button id="cancelEditDetailsBtn" class="secondary" type="button">Cancelar</button>
@@ -440,6 +494,10 @@
         }
       };
       var currentDetailsItem = null;
+      var editCatalogs = {
+        posicoes: [],
+        defeitosPorPosicao: {}
+      };
 
       if (typeof window.initThemeToggle_ === 'function') {
         window.initThemeToggle_();
@@ -510,6 +568,8 @@
           .withSuccessHandler(function (catalogs) {
             var origemSelect = document.getElementById('filterOrigem');
             var origens = catalogs && Array.isArray(catalogs.origens) ? catalogs.origens : [];
+            editCatalogs.posicoes = catalogs && Array.isArray(catalogs.posicoes) ? catalogs.posicoes : [];
+            editCatalogs.defeitosPorPosicao = catalogs && catalogs.defeitosPorPosicao ? catalogs.defeitosPorPosicao : {};
 
             origens.forEach(function (origem) {
               var value = String(origem || '').trim();
@@ -806,9 +866,122 @@
         document.getElementById('editOperador3').value = operators[2] || '';
         document.getElementById('editOperador4').value = operators[3] || '';
 
-        document.getElementById('editTotalLancamentos').value = Number(item.totalLancamentosDefeitos) || 0;
-        document.getElementById('editDefeitosJson').value = String(item.defeitosJsonRaw || '');
-        document.getElementById('editDefeitosResumo').value = String(item.defeitosResumo || '');
+        var parsedDefects = parseDefectsPayload_(item.defeitosJsonRaw);
+        renderEditDefectRows_(parsedDefects);
+      }
+
+      function appendPlaceholderOption_(select) {
+        var option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Selecione...';
+        select.appendChild(option);
+      }
+
+      function renderEditDefectsForPosition_(selectDef, posicao) {
+        var previousDefect = String(selectDef.value || '');
+        var defectMap = editCatalogs.defeitosPorPosicao || {};
+        var defects = defectMap[posicao] || [];
+        selectDef.innerHTML = '';
+        appendPlaceholderOption_(selectDef);
+
+        defects.forEach(function (def) {
+          var opt = document.createElement('option');
+          opt.value = def;
+          opt.textContent = def;
+          selectDef.appendChild(opt);
+        });
+
+        selectDef.disabled = !posicao;
+        if (previousDefect && defects.indexOf(previousDefect) !== -1) {
+          selectDef.value = previousDefect;
+        }
+      }
+
+      function addEditDefectRow_(item) {
+        var tbody = document.getElementById('editDefectRows');
+        var tr = document.createElement('tr');
+
+        var tdPos = document.createElement('td');
+        var selectPos = document.createElement('select');
+        selectPos.className = 'posicao';
+        appendPlaceholderOption_(selectPos);
+        (editCatalogs.posicoes || []).forEach(function (posicao) {
+          var opt = document.createElement('option');
+          opt.value = posicao;
+          opt.textContent = posicao;
+          selectPos.appendChild(opt);
+        });
+        tdPos.appendChild(selectPos);
+
+        var tdDef = document.createElement('td');
+        var selectDef = document.createElement('select');
+        selectDef.className = 'defeito';
+        tdDef.appendChild(selectDef);
+
+        var tdQtd = document.createElement('td');
+        var inputQtd = document.createElement('input');
+        inputQtd.type = 'number';
+        inputQtd.className = 'quantidade';
+        inputQtd.min = '1';
+        inputQtd.step = '1';
+        tdQtd.appendChild(inputQtd);
+
+        var tdAction = document.createElement('td');
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'row-remove';
+        removeBtn.textContent = 'Remover';
+        removeBtn.addEventListener('click', function () {
+          tr.remove();
+          if (!document.querySelectorAll('#editDefectRows tr').length) {
+            addEditDefectRow_();
+          }
+        });
+        tdAction.appendChild(removeBtn);
+
+        selectPos.addEventListener('change', function () {
+          renderEditDefectsForPosition_(selectDef, selectPos.value);
+        });
+
+        tr.appendChild(tdPos);
+        tr.appendChild(tdDef);
+        tr.appendChild(tdQtd);
+        tr.appendChild(tdAction);
+        tbody.appendChild(tr);
+
+        renderEditDefectsForPosition_(selectDef, item && item.posicao ? String(item.posicao) : '');
+        selectPos.value = item && item.posicao ? String(item.posicao) : '';
+        if (item && item.defeito) {
+          selectDef.value = String(item.defeito);
+        }
+        inputQtd.value = item && item.quantidade ? Number(item.quantidade) : '';
+      }
+
+      function renderEditDefectRows_(items) {
+        var tbody = document.getElementById('editDefectRows');
+        tbody.innerHTML = '';
+
+        if (!items || !items.length) {
+          addEditDefectRow_();
+          return;
+        }
+
+        items.forEach(function (item) {
+          addEditDefectRow_(item);
+        });
+      }
+
+      function collectEditDefects_() {
+        return Array.prototype.slice.call(document.querySelectorAll('#editDefectRows tr')).map(function (tr) {
+          var qtyInput = tr.querySelector('.quantidade');
+          return {
+            posicao: String((tr.querySelector('.posicao') || {}).value || '').trim(),
+            defeito: String((tr.querySelector('.defeito') || {}).value || '').trim(),
+            quantidade: String((qtyInput && qtyInput.value) || '').trim()
+          };
+        }).filter(function (item) {
+          return item.posicao || item.defeito || item.quantidade;
+        });
       }
 
       function toDatetimeLocalValue_(isoValue) {
@@ -845,6 +1018,16 @@
           return;
         }
 
+        var editDefects = collectEditDefects_();
+        var defectsJsonRaw = editDefects.length ? JSON.stringify(editDefects) : '';
+        var defectsSummary = editDefects.map(function (defect) {
+          return [defect.posicao, defect.defeito, defect.quantidade].join(' / ');
+        }).join(' | ');
+
+        document.getElementById('editTotalLancamentos').value = editDefects.length;
+        document.getElementById('editDefeitosJson').value = defectsJsonRaw;
+        document.getElementById('editDefeitosResumo').value = defectsSummary;
+
         var payload = {
           idInspecao: currentDetailsItem.idInspecao,
           sheetRowNumber: currentDetailsItem.sheetRowNumber,
@@ -879,6 +1062,10 @@
           })
           .updateInspectionControl(payload);
       }
+
+      document.getElementById('addEditDefectBtn').addEventListener('click', function () {
+        addEditDefectRow_();
+      });
 
       function showInlineStatus_(elementId, text) {
         var target = document.getElementById(elementId);
