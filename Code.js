@@ -145,10 +145,26 @@ function normalizeDefects_(defects) {
 }
 
 /**
- * Stub para integração futura SAP B1 por OP.
+ * Busca cliente na aba op_cliente para OPs com 5 dígitos numéricos.
  */
 function getClientByOP(op) {
-  // TODO: integrar com SAP B1 para buscar cliente automaticamente por OP.
+  var normalizedOp = String(op || '').trim();
+  if (!/^\d{5}$/.test(normalizedOp)) {
+    return '';
+  }
+
+  var sheet = getOptionalSheet_(SHEETS.OP_CLIENTE);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return '';
+  }
+
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
+  for (var i = 0; i < values.length; i += 1) {
+    if (String(values[i][0] || '').trim() === normalizedOp) {
+      return String(values[i][1] || '').trim();
+    }
+  }
+
   return '';
 }
 
