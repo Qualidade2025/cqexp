@@ -200,6 +200,15 @@
 
       .edit-form-grid label {
         margin: 0;
+        min-width: 170px;
+      }
+
+      .edit-form-grid input,
+      .edit-form-grid select,
+      .edit-form-grid textarea {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
       }
 
       .edit-form-grid textarea {
@@ -252,11 +261,19 @@
         .edit-form-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+
+        .edit-form-grid label[class^='field-row'] {
+          grid-column: auto;
+        }
       }
 
       @media (max-width: 620px) {
         .edit-form-grid {
           grid-template-columns: 1fr;
+        }
+
+        .edit-form-grid label {
+          min-width: 0;
         }
       }
     </style>
@@ -439,7 +456,7 @@
               <label class="field-row2-col1">
                 <span id="editOpLabel">OP</span>
                 <div class="op-input-wrap">
-                  <input id="editOp" type="text" maxlength="80" />
+                  <input id="editOp" type="text" maxlength="80" inputmode="numeric" pattern="[0-9]*" />
                   <button id="editOpLockBtn" class="op-lock-btn" type="button" aria-label="Marcar como sem OP">✕</button>
                 </div>
               </label>
