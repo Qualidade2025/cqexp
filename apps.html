@@ -7,6 +7,7 @@ var state = {
     origemObrigatoria: true
   },
   selectedOperators: [],
+  opLocked: false,
   messageTimerId: null
 };
 
@@ -24,7 +25,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function bindActions_() {
   document.getElementById('op').addEventListener('blur', function () {
+    if (state.opLocked) {
+      return;
+    }
     tryAutoFillClientByOp_();
+  });
+  document.getElementById('op').addEventListener('input', function () {
+    sanitizeOpInput_();
+  });
+  document.getElementById('opLockBtn').addEventListener('click', function () {
+    toggleOpLock_();
   });
 
   document.getElementById('listRncsBtn').addEventListener('click', function () {
@@ -440,6 +450,7 @@ function buildPayload_() {
 
   return {
     op: document.getElementById('op').value.trim(),
+    opLocked: state.opLocked,
     qtddRevisada: Number(document.getElementById('qtddRevisada').value),
     origem: document.getElementById('origem').value,
     clienteManual: document.getElementById('clienteManual').value.trim(),
@@ -447,6 +458,31 @@ function buildPayload_() {
     operadores: state.selectedOperators,
     defeitos: defects
   };
+}
+
+function sanitizeOpInput_() {
+  var opField = document.getElementById('op');
+  opField.value = String(opField.value || '').replace(/\D/g, '');
+}
+
+function toggleOpLock_() {
+  applyOpLockState_(!state.opLocked);
+}
+
+function applyOpLockState_(locked) {
+  var opField = document.getElementById('op');
+  var clientField = document.getElementById('clienteManual');
+  var lockBtn = document.getElementById('opLockBtn');
+  var clienteLabel = document.getElementById('clienteLabel');
+
+  state.opLocked = !!locked;
+  opField.readOnly = state.opLocked;
+  opField.value = state.opLocked ? '' : opField.value;
+
+  clientField.required = state.opLocked;
+  clientField.readOnly = false;
+  clienteLabel.textContent = state.opLocked ? 'Cliente *' : 'Cliente';
+  lockBtn.classList.toggle('locked', state.opLocked);
 }
 
 function tryAutoFillClientByOp_() {
@@ -492,6 +528,7 @@ function saveInspection_() {
 }
 
 function resetForm_() {
+  applyOpLockState_(false);
   document.getElementById('op').value = '';
   document.getElementById('qtddRevisada').value = '';
   document.getElementById('origem').value = '';
