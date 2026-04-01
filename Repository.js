@@ -394,10 +394,17 @@ function updateInspectionControl_(payload) {
     row[1] = parsedDate;
   }
 
-  row[2] = String(data.op || '').trim();
-  row[3] = normalizeNonNegativeNumber_(data.qtddRevisada);
-  row[4] = String(data.origem || '').trim();
-  row[5] = String(data.cliente || '').trim();
+  var normalizedOp = normalizeEditedOp_(data.op);
+  var normalizedCliente = String(data.cliente || '').trim();
+  var normalizedQtd = normalizePositiveNumberOrFail_(data.qtddRevisada);
+  var normalizedOrigem = String(data.origem || '').trim();
+
+  validateEditedInspectionBusinessRules_(normalizedOp, normalizedCliente, normalizedQtd, normalizedOrigem);
+
+  row[2] = normalizedOp;
+  row[3] = normalizedQtd;
+  row[4] = normalizedOrigem;
+  row[5] = normalizedCliente;
   row[6] = String(data.criadoPorEmail || '').trim();
 
   var operators = normalizeFixedOperators_(data.operadores);
@@ -419,6 +426,40 @@ function updateInspectionControl_(payload) {
   return {
     ok: true
   };
+}
+
+function normalizeEditedOp_(value) {
+  var normalized = String(value || '').trim();
+  if (normalized.toLowerCase() === 'sem op') {
+    return '';
+  }
+  return normalized;
+}
+
+function normalizePositiveNumberOrFail_(value) {
+  var parsed = Number(value);
+  if (!isFinite(parsed) || parsed <= 0) {
+    throw new Error('Qtdd revisada deve ser maior que zero.');
+  }
+  return Math.floor(parsed);
+}
+
+function validateEditedInspectionBusinessRules_(op, cliente, qtd, origem) {
+  if (qtd <= 0) {
+    throw new Error('Qtdd revisada deve ser maior que zero.');
+  }
+
+  if (!op) {
+    if (!cliente) {
+      throw new Error('Cliente é obrigatório quando marcado como Sem OP.');
+    }
+  } else if (!/^\d+$/.test(op)) {
+    throw new Error('OP deve conter apenas dígitos numéricos.');
+  }
+
+  if (isOriginRequired_() && !origem) {
+    throw new Error('Origem é obrigatória.');
+  }
 }
 
 function parseSheetDateValue_(value) {
