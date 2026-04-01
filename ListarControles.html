@@ -433,19 +433,22 @@
                 </select>
               </label>
               <label class="field-row1-col4">
-                Origem
+                <span id="editOrigemLabel">Origem</span>
                 <select id="editOrigem"></select>
               </label>
               <label class="field-row2-col1">
-                OP
-                <input id="editOp" type="text" maxlength="80" />
+                <span id="editOpLabel">OP</span>
+                <div class="op-input-wrap">
+                  <input id="editOp" type="text" maxlength="80" />
+                  <button id="editOpLockBtn" class="op-lock-btn" type="button" aria-label="Marcar como sem OP">✕</button>
+                </div>
               </label>
               <label class="field-row2-col2">
-                Quantidade revisada
-                <input id="editQtddRevisada" type="number" min="0" step="1" />
+                <span id="editQtddLabel">Quantidade revisada</span>
+                <input id="editQtddRevisada" type="number" min="1" step="1" />
               </label>
               <label class="field-row2-col3">
-                Cliente
+                <span id="editClienteLabel">Cliente</span>
                 <input id="editCliente" type="text" maxlength="180" />
               </label>
               <label class="field-row3-col1">
@@ -545,8 +548,13 @@
         origens: [],
         colaboradores: [],
         posicoes: [],
-        defeitosPorPosicao: {}
+        defeitosPorPosicao: {},
+        origemObrigatoria: true
       };
+      var editState = {
+        opLocked: false
+      };
+      var OP_EMPTY_LABEL = 'Sem OP';
 
       if (typeof window.initThemeToggle_ === 'function') {
         window.initThemeToggle_();
@@ -585,6 +593,10 @@
         document.getElementById('editDetailsForm').addEventListener('submit', submitEditDetails_);
         document.getElementById('editOp').addEventListener('blur', function () {
           tryAutoFillEditClientByOp_();
+        });
+        document.getElementById('editOp').addEventListener('input', sanitizeEditOpInput_);
+        document.getElementById('editOpLockBtn').addEventListener('click', function () {
+          applyEditOpLockState_(!editState.opLocked);
         });
 
         Array.prototype.slice.call(document.querySelectorAll('#inspectionsTable th[data-sort-key]')).forEach(function (header) {
@@ -627,6 +639,7 @@
             editCatalogs.colaboradores = colaboradores;
             editCatalogs.posicoes = catalogs && Array.isArray(catalogs.posicoes) ? catalogs.posicoes : [];
             editCatalogs.defeitosPorPosicao = catalogs && catalogs.defeitosPorPosicao ? catalogs.defeitosPorPosicao : {};
+            editCatalogs.origemObrigatoria = !!(catalogs && catalogs.origemObrigatoria);
 
             origens.forEach(function (origem) {
               var value = String(origem || '').trim();
@@ -641,6 +654,7 @@
             });
 
             renderEditCatalogSelects_();
+            syncEditRequiredIndicators_();
           })
           .withFailureHandler(function () {})
           .getCatalogs();
@@ -1073,7 +1087,7 @@
         document.getElementById('editIdInspecao').value = String(item.idInspecao || '');
         document.getElementById('editDataServidor').value = toDatetimeLocalValue_(item.dataServidorIso);
         document.getElementById('editOp').value = String(item.op || '');
-        document.getElementById('editQtddRevisada').value = Number(item.qtddRevisada) || 0;
+        document.getElementById('editQtddRevisada').value = Number(item.qtddRevisada) || '';
         setSelectValueEnsuringOption_(document.getElementById('editOrigem'), String(item.origem || ''));
         document.getElementById('editCliente').value = String(item.cliente || '');
         document.getElementById('editCliente').readOnly = false;
@@ -1088,6 +1102,8 @@
 
         var parsedDefects = parseDefectsPayload_(item.defeitosJsonRaw);
         renderEditDefectRows_(parsedDefects);
+        applyEditOpLockState_(!String(item.op || '').trim(), true);
+        syncEditRequiredIndicators_();
         tryAutoFillEditClientByOp_();
       }
 
@@ -1095,6 +1111,9 @@
         var opField = document.getElementById('editOp');
         var clientField = document.getElementById('editCliente');
         var normalizedOp = String(opField.value || '').trim();
+        if (editState.opLocked) {
+          return;
+        }
 
         if (!/^\d{5}$/.test(normalizedOp)) {
           clientField.value = '';
@@ -1269,6 +1288,12 @@
           return;
         }
 
+        var payloadValidationError = validateEditPayload_();
+        if (payloadValidationError) {
+          setMessage_(payloadValidationError, 'error');
+          return;
+        }
+
         var editDefects = collectEditDefects_();
         var defectsJsonRaw = editDefects.length ? JSON.stringify(editDefects) : '';
         var defectsSummary = editDefects.map(function (defect) {
@@ -1283,7 +1308,7 @@
           idInspecao: currentDetailsItem.idInspecao,
           sheetRowNumber: currentDetailsItem.sheetRowNumber,
           dataServidor: String(document.getElementById('editDataServidor').value || '').trim(),
-          op: String(document.getElementById('editOp').value || '').trim(),
+          op: editState.opLocked ? '' : String(document.getElementById('editOp').value || '').trim(),
           qtddRevisada: Number(document.getElementById('editQtddRevisada').value || 0),
           origem: String(document.getElementById('editOrigem').value || '').trim(),
           cliente: String(document.getElementById('editCliente').value || '').trim(),
@@ -1332,6 +1357,84 @@
       document.getElementById('addEditDefectBtn').addEventListener('click', function () {
         addEditDefectRow_();
       });
+
+ function sanitizeEditOpInput_() {
+        if (editState.opLocked) {
+          return;
+        }
+        var opField = document.getElementById('editOp');
+        opField.value = String(opField.value || '').replace(/\D/g, '');
+      }
+
+      function applyEditOpLockState_(locked, preserveClient) {
+        var opField = document.getElementById('editOp');
+        var clientField = document.getElementById('editCliente');
+        var lockBtn = document.getElementById('editOpLockBtn');
+        editState.opLocked = !!locked;
+
+        opField.readOnly = editState.opLocked;
+        if (editState.opLocked) {
+          opField.value = OP_EMPTY_LABEL;
+        } else if (!preserveClient) {
+          opField.value = '';
+        }
+        clientField.readOnly = false;
+
+        if (!preserveClient && !editState.opLocked) {
+          clientField.value = '';
+        }
+
+        lockBtn.classList.toggle('locked', editState.opLocked);
+        syncEditRequiredIndicators_();
+      }
+
+      function syncEditRequiredIndicators_() {
+        var opLabel = document.getElementById('editOpLabel');
+        var clientLabel = document.getElementById('editClienteLabel');
+        var origemLabel = document.getElementById('editOrigemLabel');
+        var qtdLabel = document.getElementById('editQtddLabel');
+        var origemSelect = document.getElementById('editOrigem');
+        var clienteInput = document.getElementById('editCliente');
+        var qtdInput = document.getElementById('editQtddRevisada');
+
+        opLabel.textContent = editState.opLocked ? 'OP' : 'OP *';
+        clientLabel.textContent = editState.opLocked ? 'Cliente *' : 'Cliente';
+        qtdLabel.textContent = 'Quantidade revisada *';
+        origemLabel.textContent = editCatalogs.origemObrigatoria ? 'Origem *' : 'Origem';
+        clienteInput.required = editState.opLocked;
+        qtdInput.required = true;
+        origemSelect.required = !!editCatalogs.origemObrigatoria;
+      }
+
+      function validateEditPayload_() {
+        var opValue = String(document.getElementById('editOp').value || '').trim();
+        var clienteValue = String(document.getElementById('editCliente').value || '').trim();
+        var qtdValue = Number(document.getElementById('editQtddRevisada').value || 0);
+        var origemValue = String(document.getElementById('editOrigem').value || '').trim();
+
+        if (!editState.opLocked) {
+          if (!opValue) {
+            return 'OP é obrigatória.';
+          }
+          if (!/^\d+$/.test(opValue)) {
+            return 'OP deve conter apenas dígitos numéricos.';
+          }
+        }
+
+        if (editState.opLocked && !clienteValue) {
+          return 'Cliente é obrigatório quando marcado como Sem OP.';
+        }
+
+        if (!qtdValue || qtdValue <= 0) {
+          return 'Qtdd revisada deve ser maior que zero.';
+        }
+
+        if (editCatalogs.origemObrigatoria && !origemValue) {
+          return 'Origem é obrigatória.';
+        }
+
+        return '';
+      }
 
       function showInlineStatus_(elementId, text) {
         var target = document.getElementById(elementId);
