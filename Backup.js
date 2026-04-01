@@ -1,12 +1,14 @@
 /**
  * Exporta mensalmente a aba "inspecoes" em .xlsx e .csv,
- * salva os arquivos na pasta do Drive indicada em colaboradores!J2
+ * salva os arquivos na pasta do Drive indicada em colaboradores!
+ * adiciona os registros no histórico do Power BI
  * e limpa os dados da aba (mantendo o cabeçalho) após sucesso.
  */
 function exportMonthlyInspectionsBackup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var inspectionsSheet = getRequiredSheet_(SHEETS.INSPECOES);
   var folder = getBackupFolderFromCollaborators_();
+  var rowsToArchive = getInspectionsDataRows_(inspectionsSheet);
   var now = new Date();
   var month = Utilities.formatDate(now, 'Etc/GMT-3', 'MM');
   var year = Utilities.formatDate(now, 'Etc/GMT-3', 'yyyy');
@@ -31,6 +33,7 @@ function exportMonthlyInspectionsBackup() {
 
   folder.createFile(xlsxBlob);
   folder.createFile(csvBlob);
+  appendRowsToPowerBiHistory_(rowsToArchive);
 
   clearInspectionsDataRows_();
 
@@ -120,4 +123,31 @@ function clearInspectionsDataRows_() {
   }
 
   inspectionsSheet.getRange(2, 1, lastRow - 1, inspectionsSheet.getLastColumn()).clearContent();
+}
+
+function getInspectionsDataRows_(inspectionsSheet) {
+  var lastRow = inspectionsSheet.getLastRow();
+  if (lastRow <= 1) {
+    return [];
+  }
+
+  return inspectionsSheet
+    .getRange(2, 1, lastRow - 1, inspectionsSheet.getLastColumn())
+    .getValues();
+}
+
+function appendRowsToPowerBiHistory_(rows) {
+  if (!rows || !rows.length) {
+    return;
+  }
+
+  var historySpreadsheet = SpreadsheetApp.openById('1wrkjbWVWGU4ce8Zk_BbgKsb47uSaTdUCUmd0gB5_hs4');
+  var historySheet = historySpreadsheet.getSheetByName(SHEETS.INSPECOES);
+
+  if (!historySheet) {
+    throw new Error('Aba histórica não encontrada no arquivo CQ Power BI: ' + SHEETS.INSPECOES + '.');
+  }
+
+  var startRow = historySheet.getLastRow() + 1;
+  historySheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
 }
