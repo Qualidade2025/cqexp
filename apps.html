@@ -12,7 +12,8 @@ var state = {
   messageTimerId: null,
   opLookup: {
     notFound: false,
-    op: ''
+    op: '',
+    message: ''
   }
 };
 
@@ -505,7 +506,10 @@ function applyOpLockState_(locked) {
   clearOpLookupState_();
 
   clientField.required = true;
-  clientField.readOnly = false;
+  clientField.readOnly = isClientAutoOnlyMode_();
+  if (!state.opLocked && !isClientAutoOnlyMode_()) {
+    clientField.value = '';
+  }
   clienteLabel.textContent = 'Cliente *';
   lockBtn.classList.toggle('locked', state.opLocked);
   lockBtn.style.display = opRequired ? 'none' : '';
@@ -519,9 +523,11 @@ function tryAutoFillClientByOp_() {
   var opField = document.getElementById('op');
   var clientField = document.getElementById('clienteManual');
   var normalizedOp = String(opField.value || '').trim();
+  var autoOnlyMode = isClientAutoOnlyMode_();
 
-  if (!/^\d{5}$/.test(normalizedOp)) {
-    clientField.readOnly = false;
+  if (!normalizedOp) {
+    clientField.value = '';
+    clientField.readOnly = autoOnlyMode;
     clearOpLookupState_();
     return;
   }
@@ -534,17 +540,16 @@ function tryAutoFillClientByOp_() {
 
       var normalizedClient = String(cliente || '').trim();
       clientField.value = normalizedClient;
-      clientField.readOnly = !!normalizedClient;
+      clientField.readOnly = autoOnlyMode || !!normalizedClient;
       if (!normalizedClient) {
         setOpLookupNotFoundState_(normalizedOp);
-        setMessage_('OP ' + normalizedOp + ' não foi encontrada na aba op_cliente.', 'error');
         return;
       }
       clearOpLookupState_();
     })
     .withFailureHandler(function () {
-      // Em caso de falha na consulta automática, mantém campo editável manualmente.
-      clientField.readOnly = false;
+      // Em caso de falha na consulta automática, mantém bloqueado somente quando modo automático obrigatório.
+      clientField.readOnly = autoOnlyMode ? true : false;
     })
     .getClientByOP(normalizedOp);
 }
@@ -579,7 +584,7 @@ function resetForm_() {
   document.getElementById('qtddRevisada').value = '';
   document.getElementById('origem').value = '';
   document.getElementById('clienteManual').value = '';
-  document.getElementById('clienteManual').readOnly = false;
+  document.getElementById('clienteManual').readOnly = isClientAutoOnlyMode_();
   clearOpLookupState_();
   document.getElementById('retrabalho').checked = false;
 
@@ -658,13 +663,17 @@ function setOpLookupNotFoundState_(op) {
   opField.classList.add('op-not-found');
   state.opLookup.notFound = true;
   state.opLookup.op = String(op || '').trim();
+  state.opLookup.message = 'OP ' + state.opLookup.op + ' não foi encontrada na aba op_cliente.';
+  setMessage_(state.opLookup.message, 'error');
 }
 
 function clearOpLookupState_() {
   var opField = document.getElementById('op');
   opField.classList.remove('op-not-found');
+  clearOpLookupMessage_();
   state.opLookup.notFound = false;
   state.opLookup.op = '';
+  state.opLookup.message = '';
 }
 
 function isOpLookupInvalidForSave_() {
@@ -677,4 +686,19 @@ function isOpLookupInvalidForSave_() {
     return false;
   }
   return state.opLookup.notFound && state.opLookup.op === opValue;
+}
+
+function clearOpLookupMessage_() {
+  var box = document.getElementById('messageBox');
+  if (!box) {
+    return;
+  }
+
+  if (state.opLookup.message && box.textContent === state.opLookup.message) {
+    setMessage_('', '');
+  }
+}
+
+function isClientAutoOnlyMode_() {
+  return !!(state.catalogs && state.catalogs.opObrigatoria && !state.opLocked);
 }
