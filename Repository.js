@@ -406,6 +406,9 @@ function updateInspectionControl_(payload) {
   var normalizedOrigem = String(data.origem || '').trim();
 
   validateEditedInspectionBusinessRules_(normalizedOp, normalizedCliente, normalizedQtd, normalizedOrigem);
+  if (normalizedOp && isOpRequired_()) {
+    normalizedCliente = getClientByOP(normalizedOp) || normalizedCliente;
+  }
 
   row[2] = normalizedOp;
   row[3] = normalizedQtd;
@@ -465,6 +468,8 @@ function validateEditedInspectionBusinessRules_(op, cliente, qtd, origem) {
     }
   } else if (!/^\d+$/.test(op)) {
     throw new Error('OP deve conter apenas dígitos numéricos.');
+  } else if (!getClientByOP(op)) {
+    throw new Error('OP ' + op + ' não foi encontrada na aba op_cliente.');
   }
 
   if (isOriginRequired_() && !origem) {
