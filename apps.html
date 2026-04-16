@@ -4,7 +4,8 @@ var state = {
     posicoes: [],
     defeitos: [],
     origens: [],
-    origemObrigatoria: true
+    origemObrigatoria: true,
+    opObrigatoria: false
   },
   selectedOperators: [],
   opLocked: false,
@@ -93,6 +94,7 @@ function loadCatalogs_() {
       state.catalogs.defeitosPorPosicao = state.catalogs.defeitosPorPosicao || {};
       state.catalogs.origens = state.catalogs.origens || [];
       state.catalogs.origemObrigatoria = !!state.catalogs.origemObrigatoria;
+      state.catalogs.opObrigatoria = !!state.catalogs.opObrigatoria;
 
       renderOperatorSelectors_();
       renderOrigens_();
@@ -100,6 +102,7 @@ function loadCatalogs_() {
       addDefectRow_();
       loadStoredOperators_();
       renderSelectedOperators_();
+      applyOpLockState_(false);
       setStartupLoading_(false);
     })
     .withFailureHandler(function (error) {
@@ -488,15 +491,18 @@ function applyOpLockState_(locked) {
   var clientField = document.getElementById('clienteManual');
   var lockBtn = document.getElementById('opLockBtn');
   var clienteLabel = document.getElementById('clienteLabel');
+  var opRequired = !!state.catalogs.opObrigatoria;
 
-  state.opLocked = !!locked;
+  state.opLocked = opRequired ? false : !!locked;
   opField.readOnly = state.opLocked;
+  opField.required = true;
   opField.value = state.opLocked ? OP_EMPTY_LABEL : '';
 
   clientField.required = state.opLocked;
   clientField.readOnly = false;
   clienteLabel.textContent = state.opLocked ? 'Cliente *' : 'Cliente';
   lockBtn.classList.toggle('locked', state.opLocked);
+  lockBtn.style.display = opRequired ? 'none' : '';
 }
 
 function tryAutoFillClientByOp_() {
