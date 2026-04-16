@@ -17,6 +17,7 @@
     --shadow: 0 15px 40px rgba(0, 0, 0, 0.18);
     --overlay: rgba(0, 0, 0, 0.45);
     --row-hover: #eef2ff;
+    --placeholder-text: #9ca3af;
   }
 
   html[data-theme='dark'] {
@@ -38,6 +39,7 @@
     --shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
     --overlay: rgba(2, 6, 23, 0.7);
     --row-hover: #273449;
+    --placeholder-text: #94a3b8;
   }
 
   html[data-theme='dark'] {
@@ -139,6 +141,18 @@
     padding: 10px;
     background: var(--surface);
     color: var(--text);
+  }
+
+  select.placeholder-selected {
+    color: var(--placeholder-text);
+  }
+
+  select option {
+    color: var(--text);
+  }
+
+  select option[value=''] {
+    color: var(--placeholder-text);
   }
 
   .op-input-wrap {
