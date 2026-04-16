@@ -340,6 +340,9 @@ function renderOrigens_() {
   var label = document.getElementById('origemLabel');
   select.innerHTML = '';
   appendPlaceholderOption_(select);
+  select.onchange = function () {
+    updateSelectPlaceholderStyle_(select);
+  };
 
   select.required = !!state.catalogs.origemObrigatoria;
   label.textContent = state.catalogs.origemObrigatoria ? 'Origem *' : 'Origem';
@@ -368,6 +371,9 @@ function addDefectRow_() {
   var selectPos = document.createElement('select');
   selectPos.className = 'posicao';
   appendPlaceholderOption_(selectPos);
+  selectPos.addEventListener('change', function () {
+    updateSelectPlaceholderStyle_(selectPos);
+  });
   state.catalogs.posicoes.forEach(function (pos) {
     var opt = document.createElement('option');
     opt.value = pos;
@@ -380,6 +386,9 @@ function addDefectRow_() {
   var selectDef = document.createElement('select');
   selectDef.className = 'defeito';
   renderDefectsForPosition_(selectDef, '');
+  selectDef.addEventListener('change', function () {
+    updateSelectPlaceholderStyle_(selectDef);
+  });
   selectPos.addEventListener('change', function () {
     renderDefectsForPosition_(selectDef, selectPos.value);
   });
@@ -442,6 +451,7 @@ function renderDefectsForPosition_(selectDef, posicao) {
   } else {
     selectDef.value = '';
   }
+  updateSelectPlaceholderStyle_(selectDef);
 }
 
 function focusLastQuantidade_() {
@@ -585,6 +595,7 @@ function resetForm_() {
   document.getElementById('op').value = '';
   document.getElementById('qtddRevisada').value = '';
   document.getElementById('origem').value = '';
+  updateSelectPlaceholderStyle_(document.getElementById('origem'));
   document.getElementById('clienteManual').value = '';
   document.getElementById('clienteManual').readOnly = isClientAutoOnlyMode_();
   clearOpLookupState_();
