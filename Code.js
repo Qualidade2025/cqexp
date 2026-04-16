@@ -59,7 +59,8 @@ function getCatalogs() {
     defeitos: defectCatalog.defeitos,
     defeitosPorPosicao: defectCatalog.defeitosPorPosicao,
     origens: getActiveCatalogValues_(SHEETS.CAD_ORIGENS, 1, 2),
-    origemObrigatoria: isOriginRequired_()
+    origemObrigatoria: isOriginRequired_(),
+    opObrigatoria: isOpRequired_()
   };
 }
 
