@@ -570,7 +570,12 @@
         opObrigatoria: false
       };
       var editState = {
-        opLocked: false
+        opLocked: false,
+        opLookup: {
+          notFound: false,
+          op: '',
+          message: ''
+        }
       };
       var OP_EMPTY_LABEL = 'Sem OP';
 
@@ -1109,7 +1114,7 @@
         document.getElementById('editQtddRevisada').value = Number(item.qtddRevisada) || '';
         setSelectValueEnsuringOption_(document.getElementById('editOrigem'), String(item.origem || ''));
         document.getElementById('editCliente').value = String(item.cliente || '');
-        document.getElementById('editCliente').readOnly = false;
+        document.getElementById('editCliente').readOnly = isEditClientAutoOnlyMode_();
         document.getElementById('editCriadoPorEmail').value = String(item.criadoPorEmail || '');
         document.getElementById('editRetrabalho').value = item.retrabalho ? 'sim' : 'nao';
 
@@ -1130,31 +1135,41 @@
         var opField = document.getElementById('editOp');
         var clientField = document.getElementById('editCliente');
         var normalizedOp = String(opField.value || '').trim();
+        var autoOnlyMode = isEditClientAutoOnlyMode_();
         if (editState.opLocked) {
           return;
         }
 
-        if (!/^\d{5}$/.test(normalizedOp)) {
+        if (!normalizedOp) {
           clientField.value = '';
-          clientField.readOnly = false;
+          clientField.readOnly = autoOnlyMode;
+          clearEditOpLookupState_();
           return;
         }
 
         if (!window.google || !google.script || !google.script.run) {
           clientField.value = '';
-          clientField.readOnly = false;
+          clientField.readOnly = autoOnlyMode ? true : false;
           return;
         }
 
         google.script.run
           .withSuccessHandler(function (cliente) {
+            if (String(opField.value || '').trim() !== normalizedOp) {
+              return;
+            }
             var normalizedClient = String(cliente || '').trim();
             clientField.value = normalizedClient;
-            clientField.readOnly = !!normalizedClient;
+            clientField.readOnly = autoOnlyMode || !!normalizedClient;
+            if (!normalizedClient) {
+              setEditOpLookupNotFoundState_(normalizedOp);
+              return;
+            }
+            clearEditOpLookupState_();
           })
           .withFailureHandler(function () {
             clientField.value = '';
-            clientField.readOnly = false;
+            clientField.readOnly = autoOnlyMode ? true : false;
           })
           .getClientByOP(normalizedOp);
       }
@@ -1383,6 +1398,7 @@
         }
         var opField = document.getElementById('editOp');
         opField.value = String(opField.value || '').replace(/\D/g, '');
+        clearEditOpLookupState_();
       }
 
       function applyEditOpLockState_(locked, preserveClient) {
@@ -1399,11 +1415,12 @@
         } else if (!preserveClient) {
           opField.value = '';
         }
-        clientField.readOnly = false;
+        clientField.readOnly = isEditClientAutoOnlyMode_();
 
         if (!preserveClient && !editState.opLocked) {
           clientField.value = '';
         }
+        clearEditOpLookupState_();
 
         lockBtn.classList.toggle('locked', editState.opLocked);
         lockBtn.style.display = opRequired ? 'none' : '';
@@ -1441,6 +1458,9 @@
           if (!/^\d+$/.test(opValue)) {
             return 'OP deve conter apenas dígitos numéricos.';
           }
+          if (isEditOpLookupInvalidForSave_()) {
+            return 'OP ' + opValue + ' não foi encontrada na aba op_cliente.';
+          }
         }
 
         if (editCatalogs.opObrigatoria && !opValue) {
@@ -1460,6 +1480,52 @@
         }
 
         return '';
+      }
+
+      function setEditOpLookupNotFoundState_(op) {
+        var opField = document.getElementById('editOp');
+        opField.classList.add('op-not-found');
+        editState.opLookup.notFound = true;
+        editState.opLookup.op = String(op || '').trim();
+        editState.opLookup.message = 'OP ' + editState.opLookup.op + ' não foi encontrada na aba op_cliente.';
+        setMessage_(editState.opLookup.message, 'error');
+      }
+
+      function clearEditOpLookupState_() {
+        var opField = document.getElementById('editOp');
+        if (opField) {
+          opField.classList.remove('op-not-found');
+        }
+        clearEditOpLookupMessage_();
+        editState.opLookup.notFound = false;
+        editState.opLookup.op = '';
+        editState.opLookup.message = '';
+      }
+
+      function clearEditOpLookupMessage_() {
+        var box = document.getElementById('messageBox');
+        if (!box) {
+          return;
+        }
+
+        if (editState.opLookup.message && box.textContent === editState.opLookup.message) {
+          setMessage_('', '');
+        }
+      }
+
+      function isEditOpLookupInvalidForSave_() {
+        if (editState.opLocked) {
+          return false;
+        }
+        var opValue = String(document.getElementById('editOp').value || '').trim();
+        if (!opValue) {
+          return false;
+        }
+        return editState.opLookup.notFound && editState.opLookup.op === opValue;
+      }
+
+      function isEditClientAutoOnlyMode_() {
+        return !!(editCatalogs.opObrigatoria && !editState.opLocked);
       }
 
       function showInlineStatus_(elementId, text) {
