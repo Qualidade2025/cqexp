@@ -11,8 +11,12 @@ function validateInspectionPayload_(payload) {
     op = '';
   }
   var opLocked = !!payload.opLocked;
+  var opIsRequired = isOpRequired_();
 
   if (opLocked) {
+    if (opIsRequired) {
+      throw new Error('OP é obrigatória.');
+    }
     if (!payload.clienteManual || !String(payload.clienteManual).trim()) {
       throw new Error('Cliente é obrigatório quando o campo OP está travado.');
     }
