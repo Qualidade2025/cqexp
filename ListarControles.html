@@ -92,6 +92,13 @@
         text-overflow: ellipsis;
       }
 
+      #inspectionsTable th.operadores-col,
+      #inspectionsTable td.operadores-col {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .sort-trigger {
         width: 100%;
         border: none;
@@ -365,7 +372,7 @@
                 <th data-sort-key="origem" data-sort-type="alpha">
                   <button type="button" class="sort-trigger"><span class="sort-label">Origem</span><span class="sort-indicator"></span></button>
                 </th>
-                <th data-sort-key="operadores" data-sort-type="alpha">
+                <th class="operadores-col" data-sort-key="operadores" data-sort-type="alpha">
                   <button type="button" class="sort-trigger"><span class="sort-label">Operadores</span><span class="sort-indicator"></span></button>
                 </th>
                 <th class="nowrap" data-sort-key="totalDefeitos" data-sort-type="numeric">
@@ -880,7 +887,7 @@
           appendCell_(tr, item.cliente || '-', 'cell-center cliente-col', item.cliente || '-');
           appendCell_(tr, String(item.qtddRevisada || 0), 'cell-center');
           appendCell_(tr, item.origem || '-', 'cell-center');
-          appendCell_(tr, (item.operadores || []).join(', ') || '-', 'cell-left');
+          appendCell_(tr, (item.operadores || []).join(', ') || '-', 'cell-left operadores-col');
           appendCell_(tr, String(item.totalDefeitos || 0), 'cell-center');
 
           var retrabalhoCell = document.createElement('td');
