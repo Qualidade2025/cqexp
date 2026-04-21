@@ -70,6 +70,10 @@ function bindActions_() {
     openPasswordModal_();
   });
 
+  document.getElementById('clearOperatorsModalBtn').addEventListener('click', function () {
+    clearOperatorModalSelection_();
+  });
+
   document.getElementById('confirmOperatorsBtn').addEventListener('click', function () {
     confirmOperatorSelection_();
   });
@@ -266,6 +270,7 @@ function fillOperatorSelectors_(operators) {
     var select = document.getElementById('operador' + i);
     if (select) {
       select.value = '';
+      updateSelectPlaceholderStyle_(select);
     }
   });
 
@@ -280,6 +285,11 @@ function fillOperatorSelectors_(operators) {
       updateSelectPlaceholderStyle_(select);
     }
   });
+}
+
+function clearOperatorModalSelection_() {
+  fillOperatorSelectors_([]);
+  document.getElementById('operatorModalError').textContent = '';
 }
 
 function getModalOperators_() {
