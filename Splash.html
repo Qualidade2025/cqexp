@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Teste Baldi</title>
+    <title>CQ Expedição - Splash</title>
     <script>
       (function () {
-        const THEME_KEY = 'baldi-theme';
+        const THEME_KEY = 'cqexp.theme';
         const storedTheme = localStorage.getItem(THEME_KEY);
         const initialTheme = (storedTheme === 'light' || storedTheme === 'dark')
           ? storedTheme
@@ -257,12 +257,17 @@
 
     <main id="main" class="screen" data-ready="false" aria-label="Página inicial">
       <button id="themeToggle" type="button" aria-label="Alternar tema">Modo claro</button>
-      <h1 class="title">teste</h1>
+      <h1 class="title">Carregando CQ...</h1>
     </main>
+
+    <script>
+      window.APP_BASE_URL = <?!= JSON.stringify(appBaseUrl || '') ?>;
+    </script>
 
     <script>
       (function () {
         const GLOW_MS = 1500;
+        const SPLASH_FADE_MS = 520;
 
         const splash = document.getElementById('splash');
         const main = document.getElementById('main');
@@ -273,10 +278,29 @@
         const fallback = document.getElementById('logoFallback');
         const themeToggle = document.getElementById('themeToggle');
 
-        const THEME_KEY = 'baldi-theme';
+        const THEME_KEY = 'cqexp.theme';
         const getActiveLogo = () => {
           const theme = document.documentElement.getAttribute('data-theme');
           return theme === 'light' ? logoLight : logoDark;
+        };
+
+        const buildAppUrl = (page) => {
+          const baseUrl = String(window.APP_BASE_URL || '').trim();
+          if (!baseUrl) {
+            const currentUrl = window.location.href;
+            if (currentUrl.indexOf('?') === -1) {
+              return currentUrl + '?page=' + encodeURIComponent(page);
+            }
+            if (/[?&]page=/.test(currentUrl)) {
+              return currentUrl.replace(/([?&])page=[^&]*/g, '$1page=' + encodeURIComponent(page));
+            }
+            return currentUrl + '&page=' + encodeURIComponent(page);
+          }
+          return baseUrl + '?page=' + encodeURIComponent(page);
+        };
+
+        const openHome = () => {
+          window.location.href = buildAppUrl('index');
         };
 
         const applyTheme = (theme) => {
@@ -321,6 +345,7 @@
           glowTarget.addEventListener('animationend', () => {
             main.setAttribute('data-ready', 'true');
             splash.classList.add('hide');
+            setTimeout(openHome, SPLASH_FADE_MS);
           }, { once: true });
 
           // Segurança: se o evento não disparar por algum motivo.
@@ -328,6 +353,7 @@
             if (!splash.classList.contains('hide')) {
               main.setAttribute('data-ready', 'true');
               splash.classList.add('hide');
+              setTimeout(openHome, SPLASH_FADE_MS);
             }
           }, GLOW_MS + 120);
         }, { once: true });
