@@ -8,6 +8,33 @@
     <?!= include('styles') ?>
   </head>
   <body>
+    <section id="appSplash" class="app-splash" aria-label="Splash screen">
+      <div id="appSplashLogoWrap" class="app-splash-logo-wrap" role="img" aria-label="Logo Baldi">
+        <img
+          id="appSplashLogoDark"
+          class="app-splash-logo app-splash-logo-dark"
+          alt="Baldi branca"
+          src="https://i.ibb.co/933KM0KH/Logo-Baldi-Vers-o-Correta-Branca.png"
+        />
+        <img
+          id="appSplashLogoLight"
+          class="app-splash-logo app-splash-logo-light"
+          alt="Baldi preta"
+          src="https://i.ibb.co/PzDD4QLk/Logo-Baldi-Vers-o-Correta-Preta.png"
+        />
+        <div id="appSplashLogoMask" class="app-splash-logo-mask" aria-hidden="true"></div>
+      </div>
+    </section>
+    <div id="splashScreen" class="splash-screen" role="status" aria-live="polite" aria-label="Carregando plataforma">
+      <div id="splashLogoHost" class="splash-logo-host">
+        <div id="splashLogoWrap" class="logo-wrap splash-logo-wrap" aria-hidden="true">
+          <img id="splashLogoDark" class="logo-img logo-dark" alt="Logo Baldi branca" src="https://i.ibb.co/933KM0KH/Logo-Baldi-Vers-o-Correta-Branca.png" />
+          <img id="splashLogoLight" class="logo-img logo-light" alt="Logo Baldi preta" src="https://i.ibb.co/PzDD4QLk/Logo-Baldi-Vers-o-Correta-Preta.png" />
+          <div id="splashLogoMask" class="splash-logo-mask" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+
     <main class="container">
       <div id="startupLoading" class="startup-loading" role="status" aria-live="polite">
         <div class="startup-loading-card">
