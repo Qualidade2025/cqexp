@@ -39,6 +39,10 @@ function getTemplateNameByPage_(page) {
     return 'EditarColaboradores';
   }
 
+  if (page === 'splash') {
+    return 'Splash';
+  }
+
   return 'Index';
 }
 
